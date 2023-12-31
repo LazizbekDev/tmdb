@@ -18,4 +18,19 @@ bot.start((ctx) => {
 bot.help((ctx) => ctx.reply('Send me a sticker'))
 bot.on('sticker', (ctx) => ctx.reply('👍'))
 bot.hears('hi', (ctx) => ctx.reply('Hey there'))
-bot.launch()
+const PORT = process.env.PORT || 5000;
+
+if(process.env.NODE_ENV === "PRODUCTION"){
+    bot.launch({
+        webhook:{
+            domain: process.env.URL,// Your domain URL (where server code will be deployed)
+            port: PORT
+        }
+    }).then(() => {
+        console.info(`The bot ${bot.botInfo.username} is running on server`);
+    });
+} else { // if local use Long-polling
+    bot.launch().then(() => {
+        console.info(`The bot ${bot.botInfo.username} is running locally`);
+    });
+}
