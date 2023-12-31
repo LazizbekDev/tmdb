@@ -1,0 +1,25 @@
+{
+  "name": "reelty",
+  "version": "1.0.0",
+  "description": "find and watch movies on telegram",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --watch index.js"
+  },
+  "keywords": [
+    "reelty",
+    "telegram",
+    "bot",
+    "movie",
+    "finder"
+  ],
+  "author": "Lazizbek Tojiboyev",
+  "license": "ISC",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "dotenv": "^16.3.1",
+    "mongoose": "^8.0.3",
+    "telegraf": "^4.15.3"
+  }
+}
