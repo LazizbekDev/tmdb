@@ -16,6 +16,10 @@
   ],
   "author": "Lazizbek Tojiboyev",
   "license": "ISC",
+  "repository": {
+    "url": "https://github.com/LazizbekDev/reelty.git",
+    "type": "public"
+  },
   "dependencies": {
     "colors": "^1.4.0",
     "dotenv": "^16.3.1",
