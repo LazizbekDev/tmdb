@@ -7,7 +7,7 @@ export default function Actions (bot) {
         await ctx.answerCbQuery("Welcome Lady!");
     });
 
-    bot.action('male', async (ctx) => {
+    bot.action('animal', async (ctx) => {
         await ctx.answerCbQuery("Are you an animal??");
     })
 }
