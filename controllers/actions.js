@@ -1,5 +1,3 @@
-import {Markup} from "telegraf";
-
 export default function Actions (bot) {
     bot.action('male', async (ctx) => {
         await ctx.answerCbQuery("ohh you're man!");

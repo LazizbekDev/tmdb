@@ -1,4 +1,4 @@
-import { Telegraf, Markup } from 'telegraf';
+import { Telegraf } from 'telegraf';
 import { config } from 'dotenv';
 import { connect } from './db.js';
 import {startMessage} from "./controllers/start.js";
