@@ -1,6 +1,8 @@
-import { Telegraf } from 'telegraf';
+import { Telegraf, Markup } from 'telegraf';
 import { config } from 'dotenv';
 import { connect } from './db.js';
+import {startMessage} from "./controllers/start.js";
+import Actions from "./controllers/actions.js";
 config();
 connect(process.env.DB);
 
@@ -10,7 +12,7 @@ const bot = new Telegraf(token);
 bot.start((ctx) => {
     console.log(ctx.message.from);
     if (ctx.message.from?.username.toLowerCase() === process.env.ADMIN) {
-        ctx.reply("Hush kelibsiz admin!")
+        startMessage(ctx).then(r => r)
     } else {
         ctx.reply("slaom")
     }
@@ -18,6 +20,7 @@ bot.start((ctx) => {
 bot.help((ctx) => ctx.reply('Send me a sticker'))
 bot.on('sticker', (ctx) => ctx.reply('👍'))
 bot.hears('hi', (ctx) => ctx.reply('Hey there'))
+Actions(bot)
 const PORT = process.env.PORT || 5000;
 
 if(process.env.NODE_ENV === "PRODUCTION"){
