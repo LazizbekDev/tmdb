@@ -1,12 +1,13 @@
 import {Markup} from "telegraf";
 
 export const startMessage = async (ctx) => {
-    return ctx.reply(`Hello ${ctx.message.from.first_name}, welcome to our bot! Set your gander`, {
+    const isAdmin = ctx.message.from?.username.toLowerCase() === process.env.ADMIN;
+    return ctx.reply(`Hello ${ctx.message.from.first_name}, welcome to <b>I MOVIE ARCHIVE's official bot</b>`, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
-                Markup.button.callback('Male', 'male'),
-                Markup.button.callback('Female', 'female'),
-                Markup.button.callback("Others", 'animal')
+                Markup.button.callback('Movie', 'movie'),
+                Markup.button.callback('Series', 'series'),
+                Markup.button.callback(isAdmin ? "Add new" : "Send feedback", isAdmin ? "add" : "feedback")
             ]
         )
     })

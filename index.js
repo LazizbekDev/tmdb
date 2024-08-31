@@ -4,22 +4,20 @@ import { connect } from './db.js';
 import {startMessage} from "./controllers/start.js";
 import Actions from "./controllers/actions.js";
 config();
-connect(process.env.DB);
+connect(process.env.DB).then(r => r);
 
 const token = process.env.BOT_TOKEN;
-console.log(token)
+// console.log(token)
 const bot = new Telegraf(token);
 bot.start((ctx) => {
-    console.log(ctx.message.from);
-    if (ctx.message.from?.username.toLowerCase() === process.env.ADMIN) {
-        startMessage(ctx).then(r => r)
-    } else {
-        ctx.reply("slaom")
-    }
+    startMessage(ctx).then(r => r)
 })
-bot.help((ctx) => ctx.reply('Send me a sticker'))
-bot.on('sticker', (ctx) => ctx.reply('👍'))
-bot.hears('hi', (ctx) => ctx.reply('Hey there'))
+
+bot.command('add', async (ctx) => {
+    console.log(ctx)
+    await ctx.telegram.sendMessage(process.env.ID, "This is a predefined message for the 'add' action.");
+})
+
 Actions(bot)
 const PORT = process.env.PORT || 5000;
 
