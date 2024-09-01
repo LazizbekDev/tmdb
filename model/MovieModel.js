@@ -1,6 +1,6 @@
-import {Model, Schema} from "mongoose";
+import mongoose from 'mongoose';
 
-const movieSchema = new Schema({
+const movieSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true
@@ -9,14 +9,18 @@ const movieSchema = new Schema({
         type: String,
         required: true
     },
-    image: {
-        type: String,
-        required: true
-    },
     movieUrl: {
         type: String,
         required: true
-    }
-})
+    },
+    keywords: {
+        type: [String],
+        required: true
+    },
+    fileType: {
+        type: String,
+        required: true
+    },
+});
 
-export default Model('movie',movieSchema);
+export default mongoose.model('Movie', movieSchema);
