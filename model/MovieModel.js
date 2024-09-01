@@ -21,6 +21,18 @@ const movieSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    teaser: {
+        type: String,
+        required: true
+    },
+    size: {
+        type: String,
+        required: true
+    },
+    duration: {
+        type: String,
+        required: true
+    }
 });
 
 export default mongoose.model('Movie', movieSchema);
