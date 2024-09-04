@@ -4,6 +4,7 @@ import info from "./add_new/info.js";
 import movie from "./add_new/movie.js";
 import teaser from "./add_new/teaser.js";
 import { checkUserMembership } from "./start.js";
+import toAdmin from "./feedback/toAdmin.js";
 const userState = {};
 
 export default function Actions(bot) {
@@ -77,8 +78,8 @@ export default function Actions(bot) {
 
         if (userState[userId] && userState[userId].step === "awaitingDetails") {
             await info(ctx, userState);
-        } else {
-            await ctx.reply("Please start by using the /add_movie command.");
+        } else if (userState[userId] && userState[userId].step === "awaitingFeedback") {
+            await toAdmin(ctx);
         }
     });
 
@@ -114,5 +115,12 @@ export default function Actions(bot) {
                 { show_alert: true }
             );
         }
+    });
+
+    bot.action("feedback", async (ctx) => {
+        userState[ctx.from.id] = {
+            step: "awaitingFeedback",
+        };
+        await ctx.reply("Please send your feedback.");
     });
 }

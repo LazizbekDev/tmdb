@@ -4,6 +4,7 @@ import { connect } from './db.js';
 import {startMessage, checkUserMembership} from "./controllers/start.js";
 import Actions from "./controllers/actions.js";
 import Movie from './model/MovieModel.js';
+import replyToUser from './controllers/feedback/replyToUser.js';
 
 config();
 connect(process.env.DB).then(r => r);
@@ -39,8 +40,9 @@ bot.start(async (ctx) => {
     }
 });
 
-
+replyToUser(bot);
 Actions(bot)
+
 const PORT = process.env.PORT || 5000;
 
 if(process.env.NODE_ENV === "PRODUCTION"){
