@@ -1,58 +1,40 @@
+import { Markup } from "telegraf";
 import Movie from "../model/MovieModel.js";
 import info from "./add_new/info.js";
 import movie from "./add_new/movie.js";
 import teaser from "./add_new/teaser.js";
+import { checkUserMembership } from "./start.js";
 const userState = {};
 
 export default function Actions(bot) {
-    bot.command("search", async (ctx) => {
-        const query = ctx.message.text.split(" ").slice(1).join(" ");
-        if (!query) {
-            return ctx.reply("Please provide a search keyword.");
-        }
+    bot.on("inline_query", async (ctx) => {
+        const query = ctx.inlineQuery.query;
+        if (!query) return;
 
-        // Search by movie name or keywords
-        const movie = await Movie.findOne({
+        const movies = await Movie.find({
             $or: [
                 { name: { $regex: query, $options: "i" } },
                 { keywords: { $regex: query, $options: "i" } },
             ],
         });
 
-        if (movie) {
-            console.log(movie.fileType);
-            try {
-                if (movie.fileType.startsWith("video/mp4")) {
-                    // Check if it's an MP4 file
-                    const captionText = `
+        const results = movies.map((movie) => ({
+            type: "video",
+            id: movie._id.toString(),
+            video_file_id: movie.movieUrl,
+            title: movie.name,
+            description: movie.caption,
+            caption: `
 🎞 ️"<b>${movie.name}</b>"
+
 ▪️Size: ${movie.size}
 ▪️Running time: ${movie.duration}
-▪️Keywords: ${movie.keywords.join(', ')}
-`;
+▪️Keywords: ${movie.keywords.join(",")}
+`,
+            parse_mode: "HTML",
+        }));
 
-                    await ctx.telegram.sendVideo(
-                        ctx.from.id,
-                        movie.movieUrl,
-                        {
-                            caption: captionText,
-                            parse_mode: "HTML",
-                        }
-                    );
-                } else {
-                    await ctx.replyWithDocument(movie.movieUrl, {
-                        // For other file types
-                        caption: `${movie.name}\n${movie.caption}`,
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to send media:", error);
-                await ctx.reply("There was an error sending the media.");
-            }
-        } else {
-            console.log(movie); // Log for debugging purposes
-            await ctx.reply("No media found for your search.");
-        }
+        await ctx.answerInlineQuery(results);
     });
 
     bot.action("add", async (ctx) => {
@@ -60,7 +42,7 @@ export default function Actions(bot) {
         if (!isAdmin) {
             return ctx.reply("You are not authorized to add media files.");
         }
-        await ctx.answerCbQuery("send movie")
+        await ctx.answerCbQuery("send movie");
         await ctx.reply("Please send the video file (mp4, mvm, etc.).");
 
         const userId = ctx.from.id;
@@ -73,11 +55,12 @@ export default function Actions(bot) {
     });
 
     bot.on("video", async (ctx) => {
+        if (ctx.message.via_bot) return;
         const userId = ctx.from.id;
         const file = ctx.message.video;
 
         if (userState[userId] && userState[userId].step === "awaitingVideo") {
-            await movie(ctx, userState, file)
+            await movie(ctx, userState, file);
         } else if (
             userState[userId] &&
             userState[userId].step === "awaitingTeaser"
@@ -89,12 +72,47 @@ export default function Actions(bot) {
     });
 
     bot.on("text", async (ctx) => {
+        if (ctx.message.via_bot) return;
         const userId = ctx.from.id;
 
         if (userState[userId] && userState[userId].step === "awaitingDetails") {
             await info(ctx, userState);
         } else {
             await ctx.reply("Please start by using the /add_movie command.");
+        }
+    });
+
+    // Handle 'Check Membership' button press
+    bot.action("check_membership", async (ctx) => {
+        const userId = ctx.from.id;
+        const isMember = await checkUserMembership(userId);
+
+        if (isMember) {
+            return ctx.editMessageText(
+                "You are now verified! Please use the buttons below:",
+                {
+                    parse_mode: "HTML",
+                    ...Markup.inlineKeyboard([
+                        Markup.button.callback("Movie", "movie"),
+                        Markup.button.callback("Series", "series"),
+                        Markup.button.callback(
+                            ctx.from?.username?.toLowerCase() ===
+                                process.env.ADMIN
+                                ? "Add new"
+                                : "Send feedback",
+                            ctx.from?.username?.toLowerCase() ===
+                                process.env.ADMIN
+                                ? "add"
+                                : "feedback"
+                        ),
+                    ]),
+                }
+            );
+        } else {
+            return ctx.answerCbQuery(
+                "You have not joined the channel yet. Please join and try again!",
+                { show_alert: true }
+            );
         }
     });
 }

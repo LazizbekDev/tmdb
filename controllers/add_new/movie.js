@@ -6,7 +6,6 @@ export default async function movie(ctx,userState, file) {
     const fileType = file.mime_type;
 
     const formatFileSize = (size) => {
-        console.log(size);
         if (size < 1024) return `${size} bytes`;
         else if (size < 1048576)
             return `${(size / 1024).toFixed(2)} KB`;
@@ -26,7 +25,7 @@ export default async function movie(ctx,userState, file) {
         return `${paddedHours}h ${paddedMinutes}m ${paddedSeconds}s`;
     }
 
-    console.log(file);
+    // console.log(file);
 
     if (!fileType.startsWith("video/")) {
         return ctx.reply(

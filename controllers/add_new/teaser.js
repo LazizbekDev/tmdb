@@ -1,7 +1,7 @@
 import Movie from "../../model/MovieModel.js";
 
 export default async function teaser(ctx, userState) {
-    // Handle teaser video
+    const botUserName = process.env.BOT_USERNAME || "kasimkhujaevabot";
     const teaser = ctx.message.video;
     const userId = ctx.from.id;
 
@@ -25,10 +25,8 @@ export default async function teaser(ctx, userState) {
 ▪️Running time: ${userState[userId].duration}
 ▪️Keywords: ${userState[userId].keywords}
 
-👉 Watch movie: <a href="https://t.me/kasimkhujaevabot">here</a>
+👉 <a href="https://t.me/${botUserName}?start=${movie._id}">Tap to watch</a>
 `;
-
-    console.log(userState[userId].keywords);
 
     await ctx.telegram.sendVideo(process.env.ID, teaser.file_id, {
         caption: captionText,
