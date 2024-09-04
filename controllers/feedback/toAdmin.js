@@ -18,11 +18,13 @@ export default async function toAdmin(ctx) {
     // Notify the admin
     await ctx.telegram.sendMessage(
         process.env.ADMIN_ID,
-        `New feedback from ${
+        `👤from ${
             ctx.from.username
                 ? "@" + ctx.from.username
                 : "User ID: " + `<code>${ctx.from.id}</code>`
-        } (${link}):\n\n${message}`,
+        }\n\n📝<i>${message}</i>\n\nℹ️ to reply: <code>/reply ${
+            ctx.from.id
+        } Thanks for your feedback ☺️</code>`,
         {
             parse_mode: "HTML",
         }
