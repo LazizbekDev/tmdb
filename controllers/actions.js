@@ -24,6 +24,7 @@ export default function Actions(bot) {
             id: movie._id.toString(),
             video_file_id: movie.movieUrl,
             title: movie.name,
+
             description: movie.caption,
             caption: `
 🎞 ️"<b>${movie.name}</b>"
@@ -78,7 +79,10 @@ export default function Actions(bot) {
 
         if (userState[userId] && userState[userId].step === "awaitingDetails") {
             await info(ctx, userState);
-        } else if (userState[userId] && userState[userId].step === "awaitingFeedback") {
+        } else if (
+            userState[userId] &&
+            userState[userId].step === "awaitingFeedback"
+        ) {
             await toAdmin(ctx);
         }
     });
@@ -93,20 +97,22 @@ export default function Actions(bot) {
                 "You are now verified! Please use the buttons below:",
                 {
                     parse_mode: "HTML",
-                    ...Markup.inlineKeyboard([
-                        Markup.button.callback("Movie", "movie"),
-                        Markup.button.callback("Series", "series"),
-                        Markup.button.callback(
-                            ctx.from?.username?.toLowerCase() ===
-                                process.env.ADMIN
-                                ? "Add new"
-                                : "Send feedback",
-                            ctx.from?.username?.toLowerCase() ===
-                                process.env.ADMIN
-                                ? "add"
-                                : "feedback"
-                        ),
-                    ]),
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "Search",
+                                    switch_inline_query_current_chat: "",
+                                },
+                            ],
+                            [
+                                {
+                                    text: isAdmin ? "Add new" : "Send feedback",
+                                    callback_data: isAdmin ? "add" : "feedback",
+                                },
+                            ],
+                        ],
+                    },
                 }
             );
         } else {
