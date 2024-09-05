@@ -62,7 +62,7 @@ setInterval(async () => {
     const {data} = await axios.get(process.env.URL)
     console.log(data)
 }, 1000 * 60)
-app.listen(process.env.PORT||5000, () => {
+app.listen(5001, () => {
     console.log('server on server')
 })
 
