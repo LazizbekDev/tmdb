@@ -1,5 +1,7 @@
 import { Telegraf } from 'telegraf';
 import { config } from 'dotenv';
+import axios from 'axios';
+import express from "express";
 import { connect } from './db.js';
 import {startMessage, checkUserMembership} from "./controllers/start.js";
 import Actions from "./controllers/actions.js";
@@ -8,10 +10,21 @@ import replyToUser from './controllers/feedback/replyToUser.js';
 
 config();
 connect(process.env.DB).then(r => r);
+const app = express();
+app.use(express.json());
+app.get('/', (req,res) => {
+    res.status(200).json({
+        OK: true,
+        app: process.env.BOT_USERNAME,
+        author: "Lazizbek Tojiboyev",
+        license: "ISC"
+    })
+})
 
 const token = process.env.BOT_TOKEN;
 
 const bot = new Telegraf(token);
+
 bot.start(async (ctx) => {
     const userId = ctx.message.from.id;
     const isMember = await checkUserMembership(userId);
@@ -44,6 +57,14 @@ replyToUser(bot);
 Actions(bot)
 
 const PORT = process.env.PORT || 5000;
+
+setInterval(async () => {
+    const {data} = await axios.get(process.env.URL)
+    console.log(data)
+}, 1000 * 60)
+app.listen(process.env.PORT||5000, () => {
+    console.log('server on server')
+})
 
 if(process.env.NODE_ENV === "PRODUCTION"){
     bot.launch({
