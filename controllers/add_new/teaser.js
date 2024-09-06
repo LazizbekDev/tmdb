@@ -1,7 +1,7 @@
 import Movie from "../../model/MovieModel.js";
+import caption from "../../utilities/caption.js";
 
 export default async function teaser(ctx, userState) {
-    const botUserName = process.env.BOT_USERNAME || "kasimkhujaevabot";
     const teaser = ctx.message.video;
     const userId = ctx.from.id;
 
@@ -18,15 +18,7 @@ export default async function teaser(ctx, userState) {
 
     await movie.save();
 
-    const captionText = `
-🎞 ️"<b>${userState[userId].name}</b>"
-
-▪️Size: ${userState[userId].movieSize}
-▪️Running time: ${userState[userId].duration}
-▪️Keywords: ${userState[userId].keywords}
-
-👉 <a href="https://t.me/${botUserName}?start=${movie._id}">Tap to watch</a>
-`;
+    const captionText = caption(userState[userId], movie._id)
 
     await ctx.telegram.sendVideo(process.env.ID, teaser.file_id, {
         caption: captionText,
@@ -34,7 +26,8 @@ export default async function teaser(ctx, userState) {
     });
 
     await ctx.reply(
-        `The movie "${userState[userId].name}" has been added successfully!`
+        `✅ The movie <b>"${userState[userId].name}"</b> has been added to @${process.env.CHANNEL_USERNAME} successfully!\n\n👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}">Check out</a>`,
+        {parse_mode: "HTML"}
     );
     delete userState[userId]; // Clean up user state after completion
 }

@@ -5,6 +5,7 @@ import {startMessage, checkUserMembership} from "./controllers/start.js";
 import Actions from "./controllers/actions.js";
 import Movie from './model/MovieModel.js';
 import replyToUser from './controllers/feedback/replyToUser.js';
+import caption from './utilities/caption.js';
 
 config();
 connect(process.env.DB).then(r => r);
@@ -26,7 +27,8 @@ bot.start(async (ctx) => {
             const movie = await Movie.findById(payload);
             if (movie) {
                 return ctx.replyWithVideo(movie.movieUrl, {
-                    caption: `${movie.name}\n${movie.caption}`,
+                    caption: caption(movie, movie._id),
+                    parse_mode: "HTML"
                 });
             } else {
                 return ctx.reply('Sorry, the movie you are looking for does not exist.');

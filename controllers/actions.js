@@ -19,22 +19,50 @@ export default function Actions(bot) {
             ],
         });
 
-        const results = movies.map((movie) => ({
-            type: "video",
-            id: movie._id.toString(),
-            video_file_id: movie.movieUrl,
-            title: movie.name,
+        console.log(movies)
 
-            description: movie.caption,
-            caption: `
-🎞 ️"<b>${movie.name}</b>"
+        const results = movies.map((movie) => {
+            const isMp4 = movie.movieUrl.endsWith("mp4"); // Check if the file is an mp4
 
-▪️Size: ${movie.size}
-▪️Running time: ${movie.duration}
-▪️Keywords: ${movie.keywords.join(",")}
-`,
-            parse_mode: "HTML",
-        }));
+            if (isMp4) {
+                // Send as a video if the file is mp4
+                return {
+                    type: "video",
+                    id: movie._id.toString(),
+                    video_file_id: movie.movieUrl, // Use video file ID
+                    title: movie.name,
+                    description: movie.caption,
+                    caption: `
+    🎞 ️"<b>${movie.name}</b>"
+    
+    ▪️Size: ${movie.size}
+    ▪️Running time: ${movie.duration}
+    ▪️Keywords: ${movie.keywords.join(", ")}
+    `,
+                    parse_mode: "HTML",
+                };
+            } else {
+                // Send as an article with a download link for non-mp4 files
+                return {
+                    type: "article",
+                    id: movie._id.toString(),
+                    title: movie.name,
+                    input_message_content: {
+                        message_text: `
+    🎞 ️"<b>${movie.name}</b>"
+    
+    ▪️Size: ${movie.size}
+    ▪️Running time: ${movie.duration}
+    ▪️Keywords: ${movie.keywords.join(", ")}
+    
+    🔗 [Download the movie](https://t.me/${process.env.BOT_USERNAME}?start=${movie._id})
+    `,
+                        parse_mode: "HTML",
+                    },
+                    description: `Download link for ${movie.name}`,
+                };
+            };
+        });
 
         await ctx.answerInlineQuery(results);
     });
