@@ -45,6 +45,19 @@ bot.start(async (ctx) => {
 replyToUser(bot);
 Actions(bot)
 
+const sendPingToAdmin = async () => {
+    try {
+        const adminId = process.env.ADMIN_ID; // Use admin's user ID here
+        await bot.telegram.sendMessage(adminId, 'To keep bot alive send /start command');
+        console.log('Ping sent to admin');
+    } catch (error) {
+        console.error('Error sending ping to admin:', error);
+    }
+};
+
+// Set an interval to send the message every 10 minutes (600000 milliseconds)
+setInterval(sendPingToAdmin, 600000)
+
 const PORT = process.env.PORT || 5000;
 
 if(process.env.NODE_ENV === "PRODUCTION"){

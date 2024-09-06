@@ -19,48 +19,26 @@ export default function Actions(bot) {
             ],
         });
 
-        console.log(movies)
+        console.log(movies);
 
         const results = movies.map((movie) => {
-            const isMp4 = movie.movieUrl.endsWith("mp4"); // Check if the file is an mp4
+            return {
+                type: "article",
+                id: movie._id.toString(),
+                title: movie.name,
+                input_message_content: {
+                    message_text: `
+🎞 ️"<b>${movie.name}</b>"
 
-            if (isMp4) {
-                // Send as a video if the file is mp4
-                return {
-                    type: "video",
-                    id: movie._id.toString(),
-                    video_file_id: movie.movieUrl, // Use video file ID
-                    title: movie.name,
-                    description: movie.caption,
-                    caption: `
-    🎞 ️"<b>${movie.name}</b>"
-    
-    ▪️Size: ${movie.size}
-    ▪️Running time: ${movie.duration}
-    ▪️Keywords: ${movie.keywords.join(", ")}
-    `,
+▪️Size: ${movie.size}
+▪️Running time: ${movie.duration}
+▪️Keywords: ${movie.keywords.join(", ")}
+
+🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>Get Movie</a>
+`,
                     parse_mode: "HTML",
-                };
-            } else {
-                // Send as an article with a download link for non-mp4 files
-                return {
-                    type: "article",
-                    id: movie._id.toString(),
-                    title: movie.name,
-                    input_message_content: {
-                        message_text: `
-    🎞 ️"<b>${movie.name}</b>"
-    
-    ▪️Size: ${movie.size}
-    ▪️Running time: ${movie.duration}
-    ▪️Keywords: ${movie.keywords.join(", ")}
-    
-    🔗 [Download the movie](https://t.me/${process.env.BOT_USERNAME}?start=${movie._id})
-    `,
-                        parse_mode: "HTML",
-                    },
-                    description: `Download link for ${movie.name}`,
-                };
+                },
+                description: `Download link for ${movie.name}`,
             };
         });
 
@@ -80,8 +58,6 @@ export default function Actions(bot) {
         userState[userId] = {
             step: "awaitingVideo",
         };
-
-        await ctx.reply("Please send the main video file.");
     });
 
     bot.on("video", async (ctx) => {
@@ -97,7 +73,7 @@ export default function Actions(bot) {
         ) {
             await teaser(ctx, userState);
         } else {
-            await ctx.reply("Please start by using the /add_movie command.");
+            await ctx.reply("Please start by using the /start command.");
         }
     });
 
