@@ -4,6 +4,7 @@ import { connect } from './db.js';
 import {startMessage, checkUserMembership} from "./controllers/start.js";
 import Actions from "./controllers/actions.js";
 import Movie from './model/MovieModel.js';
+import Series from "./model/SeriesModel.js"
 import replyToUser from './controllers/feedback/replyToUser.js';
 import caption from './utilities/caption.js';
 
@@ -24,12 +25,24 @@ bot.start(async (ctx) => {
 
     if (payload) {
         try {
-            const movie = await Movie.findById(payload);
+            const [movie, series] = await Promise.all([
+                Movie.findById(payload),
+                Series.findById(payload)
+            ]);
             if (movie) {
                 return ctx.replyWithVideo(movie.movieUrl, {
                     caption: caption(movie, movie._id),
                     parse_mode: "HTML"
                 });
+            } else if (series) {
+                return series.series.map((seasons) => {
+                    seasons?.episodes?.map((episode) => {
+                        ctx.replyWithVideo(episode.fileId, {
+                            caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${seasons.seasonNumber}, Episode ${episode.episodeNumber}`,
+                            parse_mode: "HTML"
+                        });
+                    })
+                })
             } else {
                 return ctx.reply('Sorry, the movie you are looking for does not exist.');
             }
@@ -44,19 +57,6 @@ bot.start(async (ctx) => {
 
 replyToUser(bot);
 Actions(bot)
-
-const sendPingToAdmin = async () => {
-    try {
-        const adminId = process.env.ADMIN_ID; // Use admin's user ID here
-        await bot.telegram.sendMessage(adminId, 'To keep bot alive send /start command');
-        console.log('Ping sent to admin');
-    } catch (error) {
-        console.error('Error sending ping to admin:', error);
-    }
-};
-
-// Set an interval to send the message every 10 minutes (600000 milliseconds)
-setInterval(sendPingToAdmin, 600000)
 
 const PORT = process.env.PORT || 5000;
 
