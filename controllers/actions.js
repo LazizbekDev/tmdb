@@ -12,19 +12,17 @@ import title from "./series/title.js";
 import seriesTeaser from "./series/teaser.js";
 import episodes from "./series/episodes.js";
 import saveSeries from "./series/saveSeries.js";
+import findCurrentSeason from "./series/seasons/find_current.js";
+import addNewEpisode from "./series/seasons/add_new.js";
+import saveNewSeason from "./series/seasons/saveSeason.js";
 
 const userState = {};
 
-export default function Actions(bot) {
+export default function actions(bot) {
     bot.command("list", async (ctx) => {
-        // Fetch movies and series from the database
         const movies = await Movie.find({});
         const series = await Series.find({});
-    
-        // Call a function to format the data into a table of contents
         const content = formatList(movies, series);
-    
-        // Send the formatted list to the user with HTML parse mode
         await ctx.reply(content, { parse_mode: "HTML" });
     });
 
@@ -93,31 +91,7 @@ export default function Actions(bot) {
             userState[userId] &&
             userState[userId].step === "awaitingNewSeasonDetails"
         ) {
-            const { seriesId } = userState[userId];
-
-            const series = await Series.findById(seriesId);
-
-            if (!series) {
-                console.log(seriesId);
-                return ctx.reply("Series not found.");
-            }
-
-            // Add the episode to the new season in the user state
-            userState[userId].episodes = userState[userId].episodes || [];
-            const currentSeason =
-                userState[userId].seasonNumber || series.series.length + 1;
-            const episodeNumber = userState[userId].episodeNumber || 1;
-
-            userState[userId].episodes.push({
-                episodeNumber: episodeNumber,
-                fileId: file.file_id,
-            });
-            // Increment episode number for the next upload
-            userState[userId].episodeNumber = episodeNumber + 1;
-
-            await ctx.reply(
-                `Episode ${episodeNumber} added to season ${currentSeason}! Send the next episode or press 'Done'.`
-            );
+            await addNewEpisode(ctx, userState, userId, file)
         } else if (
             userState[userId] &&
             userState[userId].step === "awaitingVideo"
@@ -148,38 +122,7 @@ export default function Actions(bot) {
             userState[userId] &&
             userState[userId].step === "awaitingSeriesForNewSeason"
         ) {
-            const series = await Series.find({
-                $or: [
-                    { name: { $regex: messageText, $options: "i" } },
-                    // { _id: { $regex: messageText, $options: "i" } },
-                ],
-            });
-
-            if (!series) {
-                return ctx.reply(
-                    "Series not found! Please provide a valid series name or ID."
-                );
-            }
-
-            // console.log(series[0])
-
-            // Store the series and move to the next step
-            userState[userId] = {
-                step: "awaitingNewSeasonDetails",
-                seriesId: series[0]._id,
-            };
-
-            await ctx.reply(
-                `Please provide the season number for <i>${series[0].name}</i>\nfollowed by the episodes (send one by one). Press 'Done' when finished.`,
-                {
-                    reply_markup: {
-                        keyboard: [[{ text: "Done" }]],
-                        resize_keyboard: true,
-                        one_time_keyboard: true,
-                    },
-                    parse_mode: "HTML",
-                }
-            );
+            await findCurrentSeason(ctx, userState, userId);
         } else if (
             messageText === "Done" &&
             userState[userId].step === "awaitingSeriesFiles"
@@ -189,32 +132,7 @@ export default function Actions(bot) {
             messageText === "Done" &&
             userState[userId].step === "awaitingNewSeasonDetails"
         ) {
-            const seriesId = userState[userId].seriesId;
-            const seasonNumber = userState[userId].seasonNumber;
-            const episodes = userState[userId].episodes;
-
-            // Find the series and add the new season
-            const series = await Series.findById(seriesId);
-
-            if (!series) {
-                return ctx.reply("Series not found.");
-            }
-
-            series.series.push({
-                seasonNumber: seasonNumber,
-                episodes: episodes,
-            });
-
-            await series.save();
-
-            // Clear the user state
-            delete userState[userId];
-
-            await ctx.reply(`Season ${seasonNumber} saved successfully!`, {
-                reply_markup: {
-                    remove_keyboard: true, // Remove the keyboard after done
-                },
-            });
+            await saveNewSeason(ctx, userState, userId);
         } else if (
             userState[userId] &&
             userState[userId].step === "awaitingDetails"

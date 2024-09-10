@@ -2,7 +2,7 @@ import { Telegraf } from 'telegraf';
 import { config } from 'dotenv';
 import { connect } from './db.js';
 import {startMessage, checkUserMembership} from "./controllers/start.js";
-import Actions from "./controllers/actions.js";
+import actions from "./controllers/actions.js";
 import Movie from './model/MovieModel.js';
 import Series from "./model/SeriesModel.js"
 import replyToUser from './controllers/feedback/replyToUser.js';
@@ -56,7 +56,7 @@ bot.start(async (ctx) => {
 });
 
 replyToUser(bot);
-Actions(bot)
+actions(bot)
 
 const PORT = process.env.PORT || 5000;
 
