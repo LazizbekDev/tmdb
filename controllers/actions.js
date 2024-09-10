@@ -4,7 +4,7 @@ import movie from "./add_new/movie.js";
 import teaser from "./add_new/teaser.js";
 import { checkUserMembership } from "./start.js";
 import toAdmin from "./feedback/toAdmin.js";
-import Series from "../model/SeriesModel.js"
+import Series from "../model/SeriesModel.js";
 
 const userState = {};
 
@@ -25,47 +25,51 @@ export default function Actions(bot) {
                     { name: { $regex: query, $options: "i" } },
                     { keywords: { $regex: query, $options: "i" } },
                 ],
-            })
+            }),
         ]);
 
         // console.log(movies);
 
         const combinedResults = [
-            ...movies.map(movie => ({
+            ...movies.map((movie) => ({
                 type: "article",
                 id: `movie_${movie._id.toString()}`,
                 title: `🎞 Movie: ${movie.name}`,
                 input_message_content: {
                     message_text: `
-        🎞 "<b>${movie.name}</b>"
-        
-        ▪️Size: ${movie.size}
-        ▪️Running time: ${movie.duration}
-        ▪️Keywords: ${movie.keywords.join(", ")}
-        
-        🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>Get Movie</a>
-        `,
+🎞 "<b>${movie.name}</b>"
+
+▪️Size: ${movie.size}
+▪️Running time: ${movie.duration}
+▪️Keywords: ${movie.keywords.join(", ")}
+
+🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
+                        movie._id
+                    }'>Get Movie</a>
+`,
                     parse_mode: "HTML",
                 },
                 description: `Movie: ${movie.name}`,
             })),
-            ...seriesList.map(series => ({
+            ...seriesList.map((series) => ({
                 type: "article",
                 id: `series_${series._id.toString()}`,
                 title: `📺 Series: ${series.name}`,
                 input_message_content: {
                     message_text: `
-        📺 "<b>${series.name}</b>"
-        
-        ▪️Keywords: ${series.keywords.join(", ")}
-        
-        🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${series._id}'>Get Series</a>
-        `,
+📺 "<b>${series.name}</b>"
+
+▪️Keywords: ${series.keywords.join(", ")}
+
+🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
+                        series._id
+                    }'>Get Series</a>
+`,
                     parse_mode: "HTML",
                 },
                 description: `Series: ${series.name}`,
-            }))
-        ]        
+            })),
+        ];
 
         await ctx.answerInlineQuery(combinedResults);
     });
@@ -85,6 +89,12 @@ export default function Actions(bot) {
                         [
                             { text: "Movie", callback_data: "add_movie" },
                             { text: "Series", callback_data: "add_series" },
+                        ],
+                        [
+                            {
+                                text: "New season",
+                                callback_data: "add_season",
+                            },
                         ],
                     ],
                 },
@@ -109,6 +119,15 @@ export default function Actions(bot) {
 
         const userId = ctx.from.id;
         userState[userId] = { step: "awaitingSeriesDetails" };
+    });
+
+    bot.action("add_season", async (ctx) => {
+        await ctx.reply(
+            "Please provide the series name or ID for which you want to add a new season."
+        );
+
+        const userId = ctx.from.id;
+        userState[userId] = { step: "awaitingSeriesForNewSeason" };
     });
 
     // Handle video and document messages
@@ -149,15 +168,70 @@ export default function Actions(bot) {
             await ctx.reply(
                 `Episode ${episodeNumber} added! Send the next episode or press 'Done'.`
             );
-        }
+        } else if (
+            userState[userId] &&
+            userState[userId].step === "awaitingNewSeasonDetails"
+        ) {
+            const { seriesId } = userState[userId];
 
-        if (userState[userId] && userState[userId].step === "awaitingVideo") {
+            const series = await Series.findById(seriesId);
+
+            if (!series) {
+                console.log(seriesId);
+                return ctx.reply("Series not found.");
+            }
+
+            // Add the episode to the new season in the user state
+            userState[userId].episodes = userState[userId].episodes || [];
+            const currentSeason =
+                userState[userId].seasonNumber || series.series.length + 1;
+            const episodeNumber = userState[userId].episodeNumber || 1;
+
+            userState[userId].episodes.push({
+                episodeNumber: episodeNumber,
+                fileId: file.file_id,
+            });
+            // Increment episode number for the next upload
+            userState[userId].episodeNumber = episodeNumber + 1;
+
+            await ctx.reply(
+                `Episode ${episodeNumber} added to season ${currentSeason}! Send the next episode or press 'Done'.`
+            );
+        } else if (
+            userState[userId] &&
+            userState[userId].step === "awaitingVideo"
+        ) {
             await movie(ctx, userState, file); // Process video or document
         } else if (
             userState[userId] &&
             userState[userId].step === "awaitingTeaser"
         ) {
             await teaser(ctx, userState);
+        } else if (
+            userState[userId] &&
+            userState[userId].step === "awaitingSeriesTeaser"
+        ) {
+            userState[userId] = {
+                step: "awaitingSeriesFiles", // Change to awaiting series files
+                seriesName: userState[userId].seriesName,
+                seasonNumber: userState[userId].seasonNumber, // Convert season to number
+                caption: userState[userId].caption,
+                keywords: userState[userId].keywords,
+                teaser: file.file_id,
+                episodes: [], // Array to store episodes
+                episodeNumber: 1, // Start from the first episode
+            };
+
+            await  ctx.reply(
+                "Now send the series episodes one by one. Press 'Done' when finished.",
+                {
+                    reply_markup: {
+                        keyboard: [[{ text: "Done" }]],
+                        resize_keyboard: true,
+                        one_time_keyboard: true,
+                    },
+                }
+            );
         } else {
             if (userState[userId].step === "awaitingSeriesFiles") return;
             await ctx.reply("Please start by using the /start command.");
@@ -170,6 +244,42 @@ export default function Actions(bot) {
         const messageText = ctx.message.text;
 
         if (
+            userState[userId] &&
+            userState[userId].step === "awaitingSeriesForNewSeason"
+        ) {
+            const series = await Series.find({
+                $or: [
+                    { name: { $regex: messageText, $options: "i" } },
+                    // { _id: { $regex: messageText, $options: "i" } },
+                ],
+            });
+
+            if (!series) {
+                return ctx.reply(
+                    "Series not found! Please provide a valid series name or ID."
+                );
+            }
+
+            // console.log(series[0])
+
+            // Store the series and move to the next step
+            userState[userId] = {
+                step: "awaitingNewSeasonDetails",
+                seriesId: series[0]._id,
+            };
+
+            await ctx.reply(
+                `Please provide the season number for <i>${series[0].name}</i>\nfollowed by the episodes (send one by one). Press 'Done' when finished.`,
+                {
+                    reply_markup: {
+                        keyboard: [[{ text: "Done" }]],
+                        resize_keyboard: true,
+                        one_time_keyboard: true,
+                    },
+                    parse_mode: "HTML",
+                }
+            );
+        } else if (
             messageText === "Done" &&
             userState[userId].step === "awaitingSeriesFiles"
         ) {
@@ -180,6 +290,7 @@ export default function Actions(bot) {
                 name: seriesData.seriesName,
                 caption: seriesData.caption,
                 keywords: seriesData.keywords,
+                teaser: seriesData.teaser,
                 series: [
                     {
                         seasonNumber: seriesData.seasonNumber,
@@ -187,12 +298,44 @@ export default function Actions(bot) {
                     },
                 ],
             });
-    
+
             await newSeries.save();
-    
+
             // Clear the user state after saving
             delete userState[userId];
-            await ctx.reply("Series saved successfully!", {
+            await ctx.replyWithVideo(newSeries.teaser, {
+                caption: `<b>${newSeries.name.toUpperCase()}</b> saved successfully!\n🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${newSeries._id}'>Click to watch</a>`,
+                reply_markup: {
+                    remove_keyboard: true, // Remove the keyboard after done
+                },
+                parse_mode: "HTML"
+            });
+        } else if (
+            messageText === "Done" &&
+            userState[userId].step === "awaitingNewSeasonDetails"
+        ) {
+            const seriesId = userState[userId].seriesId;
+            const seasonNumber = userState[userId].seasonNumber;
+            const episodes = userState[userId].episodes;
+
+            // Find the series and add the new season
+            const series = await Series.findById(seriesId);
+
+            if (!series) {
+                return ctx.reply("Series not found.");
+            }
+
+            series.series.push({
+                seasonNumber: seasonNumber,
+                episodes: episodes,
+            });
+
+            await series.save();
+
+            // Clear the user state
+            delete userState[userId];
+
+            await ctx.reply(`Season ${seasonNumber} saved successfully!`, {
                 reply_markup: {
                     remove_keyboard: true, // Remove the keyboard after done
                 },
@@ -221,7 +364,7 @@ export default function Actions(bot) {
 
             // Store series information and initialize episode number
             userState[userId] = {
-                step: "awaitingSeriesFiles", // Change to awaiting series files
+                step: "awaitingSeriesTeaser", // Change to awaiting series files
                 seriesName: name,
                 seasonNumber: parseInt(season), // Convert season to number
                 caption: caption,
@@ -230,16 +373,7 @@ export default function Actions(bot) {
                 episodeNumber: 1, // Start from the first episode
             };
 
-            await ctx.reply(
-                "Now send the series episodes one by one. Press 'Done' when finished.",
-                {
-                    reply_markup: {
-                        keyboard: [[{ text: "Done" }]],
-                        resize_keyboard: true,
-                        one_time_keyboard: true,
-                    },
-                }
-            );
+            await ctx.reply("Now send the teaser of the series");
         }
     });
 

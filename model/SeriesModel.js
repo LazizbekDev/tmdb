@@ -4,12 +4,17 @@ const SeriesSchema = new mongoose.Schema({
     name: String,
     caption: String,
     keywords: [String],
-    series: [{
-        seasonNumber: String,
-        episodes: [{
-            episodeNumber: String,
-            fileId: String,
-        }]
-    }]
+    teaser: String,
+    series: [
+        {
+            seasonNumber: String,
+            episodes: [
+                {
+                    episodeNumber: String,
+                    fileId: String,
+                },
+            ],
+        },
+    ],
 });
-export default mongoose.model('Series', SeriesSchema);
+export default mongoose.model("Series", SeriesSchema);

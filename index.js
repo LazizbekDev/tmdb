@@ -35,10 +35,10 @@ bot.start(async (ctx) => {
                     parse_mode: "HTML"
                 });
             } else if (series) {
-                return series.series.map((seasons) => {
+                return series.series.map((seasons, index) => {
                     seasons?.episodes?.map((episode) => {
                         ctx.replyWithVideo(episode.fileId, {
-                            caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${seasons.seasonNumber}, Episode ${episode.episodeNumber}`,
+                            caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${index+1}, Episode ${episode.episodeNumber}`,
                             parse_mode: "HTML"
                         });
                     })
