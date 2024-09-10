@@ -6,6 +6,12 @@ import { checkUserMembership } from "./start.js";
 import toAdmin from "./feedback/toAdmin.js";
 import Series from "../model/SeriesModel.js";
 import formatList from "./list/formatList.js";
+import search from "./search.js";
+import add from "./add_new/main.js";
+import title from "./series/title.js";
+import seriesTeaser from "./series/teaser.js";
+import episodes from "./series/episodes.js";
+import saveSeries from "./series/saveSeries.js";
 
 const userState = {};
 
@@ -23,96 +29,11 @@ export default function Actions(bot) {
     });
 
     bot.on("inline_query", async (ctx) => {
-        const query = ctx.inlineQuery.query;
-        if (!query) return;
-
-        const [movies, seriesList] = await Promise.all([
-            Movie.find({
-                $or: [
-                    { name: { $regex: query, $options: "i" } },
-                    { keywords: { $regex: query, $options: "i" } },
-                ],
-            }),
-            Series.find({
-                $or: [
-                    { name: { $regex: query, $options: "i" } },
-                    { keywords: { $regex: query, $options: "i" } },
-                ],
-            }),
-        ]);
-
-        // console.log(movies);
-
-        const combinedResults = [
-            ...movies.map((movie) => ({
-                type: "article",
-                id: `movie_${movie._id.toString()}`,
-                title: `🎞 Movie: ${movie.name}`,
-                input_message_content: {
-                    message_text: `
-🎞 "<b>${movie.name}</b>"
-
-▪️Size: ${movie.size}
-▪️Running time: ${movie.duration}
-▪️Keywords: ${movie.keywords.join(", ")}
-
-🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
-                        movie._id
-                    }'>Get Movie</a>
-`,
-                    parse_mode: "HTML",
-                },
-                description: `Movie: ${movie.name}`,
-            })),
-            ...seriesList.map((series) => ({
-                type: "article",
-                id: `series_${series._id.toString()}`,
-                title: `📺 Series: ${series.name}`,
-                input_message_content: {
-                    message_text: `
-📺 "<b>${series.name}</b>"
-
-▪️Keywords: ${series.keywords.join(", ")}
-
-🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
-                        series._id
-                    }'>Get Series</a>
-`,
-                    parse_mode: "HTML",
-                },
-                description: `Series: ${series.name}`,
-            })),
-        ];
-
-        await ctx.answerInlineQuery(combinedResults);
+        await search(ctx);
     });
 
     bot.action("add", async (ctx) => {
-        const isAdmin = ctx.from.username.toLowerCase() === process.env.ADMIN;
-        if (!isAdmin) {
-            return ctx.reply("You are not authorized to add media files.");
-        }
-
-        // Edit the message to ask if the user wants to add a movie or a series
-        await ctx.editMessageText(
-            "You're going to add media. Would you like to add a movie or a series?",
-            {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { text: "Movie", callback_data: "add_movie" },
-                            { text: "Series", callback_data: "add_series" },
-                        ],
-                        [
-                            {
-                                text: "New season",
-                                callback_data: "add_season",
-                            },
-                        ],
-                    ],
-                },
-            }
-        );
+        await add(ctx);
     });
 
     bot.action("add_movie", async (ctx) => {
@@ -136,7 +57,7 @@ export default function Actions(bot) {
 
     bot.action("add_season", async (ctx) => {
         await ctx.reply(
-            "Please provide the series name or ID for which you want to add a new season."
+            "Please provide the series name for which you want to add a new season."
         );
 
         const userId = ctx.from.id;
@@ -167,20 +88,7 @@ export default function Actions(bot) {
             userState[userId] &&
             userState[userId].step === "awaitingSeriesFiles"
         ) {
-            const { episodeNumber } = userState[userId];
-
-            // Add the episode to the user's episode list
-            userState[userId].episodes.push({
-                episodeNumber: episodeNumber, // Track episode number
-                fileId: file.file_id, // Store the fileId
-            });
-
-            // Increment episode number for the next upload
-            userState[userId].episodeNumber += 1;
-
-            await ctx.reply(
-                `Episode ${episodeNumber} added! Send the next episode or press 'Done'.`
-            );
+            await episodes(ctx, userState, userId, file);
         } else if (
             userState[userId] &&
             userState[userId].step === "awaitingNewSeasonDetails"
@@ -224,27 +132,7 @@ export default function Actions(bot) {
             userState[userId] &&
             userState[userId].step === "awaitingSeriesTeaser"
         ) {
-            userState[userId] = {
-                step: "awaitingSeriesFiles", // Change to awaiting series files
-                seriesName: userState[userId].seriesName,
-                seasonNumber: userState[userId].seasonNumber, // Convert season to number
-                caption: userState[userId].caption,
-                keywords: userState[userId].keywords,
-                teaser: file.file_id,
-                episodes: [], // Array to store episodes
-                episodeNumber: 1, // Start from the first episode
-            };
-
-            await  ctx.reply(
-                "Now send the series episodes one by one. Press 'Done' when finished.",
-                {
-                    reply_markup: {
-                        keyboard: [[{ text: "Done" }]],
-                        resize_keyboard: true,
-                        one_time_keyboard: true,
-                    },
-                }
-            );
+            await seriesTeaser(ctx, userState, userId, file);
         } else {
             if (userState[userId].step === "awaitingSeriesFiles") return;
             await ctx.reply("Please start by using the /start command.");
@@ -296,33 +184,7 @@ export default function Actions(bot) {
             messageText === "Done" &&
             userState[userId].step === "awaitingSeriesFiles"
         ) {
-            const seriesData = userState[userId];
-
-            // Prepare the series model to save
-            const newSeries = new Series({
-                name: seriesData.seriesName,
-                caption: seriesData.caption,
-                keywords: seriesData.keywords,
-                teaser: seriesData.teaser,
-                series: [
-                    {
-                        seasonNumber: seriesData.seasonNumber,
-                        episodes: seriesData.episodes,
-                    },
-                ],
-            });
-
-            await newSeries.save();
-
-            // Clear the user state after saving
-            delete userState[userId];
-            await ctx.replyWithVideo(newSeries.teaser, {
-                caption: `<b>${newSeries.name.toUpperCase()}</b> saved successfully!\n🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${newSeries._id}'>Click to watch</a>`,
-                reply_markup: {
-                    remove_keyboard: true, // Remove the keyboard after done
-                },
-                parse_mode: "HTML"
-            });
+            await saveSeries(ctx, userState, userId);
         } else if (
             messageText === "Done" &&
             userState[userId].step === "awaitingNewSeasonDetails"
@@ -371,22 +233,7 @@ export default function Actions(bot) {
             userState[userId] &&
             userState[userId].step === "awaitingSeriesDetails"
         ) {
-            const [name, season, caption, keywords] = ctx.message.text
-                .split("|")
-                .map((s) => s.trim());
-
-            // Store series information and initialize episode number
-            userState[userId] = {
-                step: "awaitingSeriesTeaser", // Change to awaiting series files
-                seriesName: name,
-                seasonNumber: parseInt(season), // Convert season to number
-                caption: caption,
-                keywords: keywords?.split(","),
-                episodes: [], // Array to store episodes
-                episodeNumber: 1, // Start from the first episode
-            };
-
-            await ctx.reply("Now send the teaser of the series");
+            await title(ctx, userState, userId);
         }
     });
 
