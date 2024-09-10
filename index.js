@@ -1,75 +1,44 @@
 import { Telegraf } from 'telegraf';
 import { config } from 'dotenv';
 import { connect } from './db.js';
-import {startMessage, checkUserMembership} from "./controllers/start.js";
-import actions from "./controllers/actions.js";
-import Movie from './model/MovieModel.js';
-import Series from "./model/SeriesModel.js"
+import actions from './controllers/actions.js';
 import replyToUser from './controllers/feedback/replyToUser.js';
-import caption from './utilities/caption.js';
+import { handleStart } from './controllers/handler.js';
 
+// Load environment variables
 config();
-connect(process.env.DB).then(r => r);
 
-const token = process.env.BOT_TOKEN;
-
-const bot = new Telegraf(token);
-bot.start(async (ctx) => {
-    const userId = ctx.message.from.id;
-    const isMember = await checkUserMembership(userId);
-    const payload = ctx.startPayload;
-
-    if (!isMember) {
-        return startMessage(ctx);
-    }
-
-    if (payload) {
-        try {
-            const [movie, series] = await Promise.all([
-                Movie.findById(payload),
-                Series.findById(payload)
-            ]);
-            if (movie) {
-                return ctx.replyWithVideo(movie.movieUrl, {
-                    caption: caption(movie, movie._id),
-                    parse_mode: "HTML"
-                });
-            } else if (series) {
-                return series.series.map((seasons, index) => {
-                    seasons?.episodes?.map((episode) => {
-                        ctx.replyWithVideo(episode.fileId, {
-                            caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${index+1}, Episode ${episode.episodeNumber}`,
-                            parse_mode: "HTML"
-                        });
-                    })
-                })
-            } else {
-                return ctx.reply('Sorry, the movie you are looking for does not exist.');
-            }
-        } catch (error) {
-            console.error("Error fetching movie:", error);
-            return ctx.reply('There was an error processing your request.');
-        }
-    } else {
-        return startMessage(ctx);
-    }
+// Connect to the database
+connect(process.env.DB).then(() => {
+    console.info('Database connection established');
+}).catch((err) => {
+    console.error('Database connection error:', err);
 });
 
+const token = process.env.BOT_TOKEN;
+const bot = new Telegraf(token);
+
+// Use the handleStart function for the /start command
+bot.start(handleStart);
+
+// Feedback handling
 replyToUser(bot);
-actions(bot)
+
+// Load other bot actions
+actions(bot);
 
 const PORT = process.env.PORT || 5000;
 
-if(process.env.NODE_ENV === "PRODUCTION"){
+if (process.env.NODE_ENV === 'PRODUCTION') {
     bot.launch({
-        webhook:{
-            domain: process.env.URL,// Your domain URL (where server code will be deployed)
+        webhook: {
+            domain: process.env.URL,
             port: PORT
         }
     }).then(() => {
-        console.info(`The bot ${bot.botInfo.username} is running on server`);
+        console.info(`The bot ${bot.botInfo.username} is running on the server`);
     });
-} else { // if local use Long-polling
+} else {
     bot.launch().then(() => {
         console.info(`The bot ${bot.botInfo.username} is running locally`);
     });
