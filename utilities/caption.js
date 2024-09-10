@@ -1,5 +1,4 @@
 export default function caption(item, id) {
-    console.log(item);
     return `
 🎞 ️"<b>${item.name}</b>"
 ℹ ️ ️"${item.caption}"

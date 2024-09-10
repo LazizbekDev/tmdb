@@ -5,10 +5,23 @@ import teaser from "./add_new/teaser.js";
 import { checkUserMembership } from "./start.js";
 import toAdmin from "./feedback/toAdmin.js";
 import Series from "../model/SeriesModel.js";
+import formatList from "./list/formatList.js";
 
 const userState = {};
 
 export default function Actions(bot) {
+    bot.command("list", async (ctx) => {
+        // Fetch movies and series from the database
+        const movies = await Movie.find({});
+        const series = await Series.find({});
+    
+        // Call a function to format the data into a table of contents
+        const content = formatList(movies, series);
+    
+        // Send the formatted list to the user with HTML parse mode
+        await ctx.reply(content, { parse_mode: "HTML" });
+    });
+
     bot.on("inline_query", async (ctx) => {
         const query = ctx.inlineQuery.query;
         if (!query) return;
