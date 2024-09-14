@@ -23,7 +23,7 @@ export async function handleStart(ctx) {
 
     // Check if user is a member of the required channel
     if (!isMember) {
-        return ctx.reply('Please join the channel to use the bot.');
+        return ctx.reply("Please join the channel to use the bot.");
     }
 
     // If payload exists, try to fetch movie or series by ID
@@ -31,29 +31,31 @@ export async function handleStart(ctx) {
         try {
             const [movie, series] = await Promise.all([
                 Movie.findById(payload),
-                Series.findById(payload)
+                Series.findById(payload),
             ]);
 
             if (movie) {
                 return ctx.replyWithVideo(movie.movieUrl, {
                     caption: caption(movie, movie._id),
-                    parse_mode: 'HTML'
+                    parse_mode: "HTML",
                 });
             } else if (series) {
-                series.series.forEach((season, index) => {
-                    season?.episodes?.forEach((episode) => {
-                        ctx.replyWithVideo(episode.fileId, {
-                            caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${index + 1}, Episode ${episode.episodeNumber}`,
+                for (const season of series.series.sort((a, b) => a.seasonNumber - b.seasonNumber)) {
+                    for (const episode of season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber)) {
+                        await ctx.replyWithVideo(episode.fileId, {
+                            caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${season.seasonNumber}, Episode ${episode.episodeNumber}`,
                             parse_mode: 'HTML'
                         });
-                    });
-                });
+                    }
+                }
             } else {
-                return ctx.reply('Sorry, the movie or series you are looking for does not exist.');
+                return ctx.reply(
+                    "Sorry, the movie or series you are looking for does not exist."
+                );
             }
         } catch (error) {
-            console.error('Error fetching movie or series:', error);
-            return ctx.reply('There was an error processing your request.');
+            console.error("Error fetching movie or series:", error);
+            return ctx.reply("There was an error processing your request.");
         }
     } else {
         startMessage(ctx); // Or whatever start message you want to send
@@ -71,12 +73,16 @@ export const handleActionButtons = (bot, userState) => {
 
     bot.action("add_series", async (ctx) => {
         await ctx.answerCbQuery("Adding a series.");
-        await ctx.reply("Please enter the series details: name | season number | caption | keywords");
+        await ctx.reply(
+            "Please enter the series details: name | season number | caption | keywords"
+        );
         userState[ctx.from.id] = { step: "awaitingSeriesDetails" };
     });
 
     bot.action("add_season", async (ctx) => {
-        await ctx.reply("Please provide the series name for which you want to add a new season.");
+        await ctx.reply(
+            "Please provide the series name for which you want to add a new season."
+        );
         userState[ctx.from.id] = { step: "awaitingSeriesForNewSeason" };
     });
 
@@ -84,17 +90,33 @@ export const handleActionButtons = (bot, userState) => {
         const userId = ctx.from.id;
         const isMember = await checkUserMembership(userId);
         if (isMember) {
-            await ctx.editMessageText("You are now verified! Use the buttons below:", {
-                parse_mode: "HTML",
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "Search", switch_inline_query_current_chat: "" }],
-                        [{ text: "Add new", callback_data: "add" }, { text: "Send feedback", callback_data: "feedback" }]
-                    ]
+            await ctx.editMessageText(
+                "You are now verified! Use the buttons below:",
+                {
+                    parse_mode: "HTML",
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "Search",
+                                    switch_inline_query_current_chat: "",
+                                },
+                            ],
+                            [
+                                { text: "Add new", callback_data: "add" },
+                                {
+                                    text: "Send feedback",
+                                    callback_data: "feedback",
+                                },
+                            ],
+                        ],
+                    },
                 }
-            });
+            );
         } else {
-            await ctx.answerCbQuery("Please join the channel and try again!", { show_alert: true });
+            await ctx.answerCbQuery("Please join the channel and try again!", {
+                show_alert: true,
+            });
         }
     });
 
@@ -102,7 +124,7 @@ export const handleActionButtons = (bot, userState) => {
         userState[ctx.from.id] = { step: "awaitingFeedback" };
         await ctx.reply("Please send your feedback.");
     });
-}
+};
 
 export const handleVideoOrDocument = async (ctx, userState) => {
     const userId = ctx.from.id;
