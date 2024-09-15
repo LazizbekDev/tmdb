@@ -1,3 +1,4 @@
+import UserSubmission from "../model/FilmRequest.js";
 import Movie from "../model/MovieModel.js";
 import Series from "../model/SeriesModel.js";
 import caption from "../utilities/caption.js";
@@ -95,6 +96,14 @@ export const handleActionButtons = (bot, userState) => {
         userState[ctx.from.id] = { step: "awaitingVideo" };
     });
 
+    bot.action('send_movie_request', async (ctx) => {
+        await ctx.answerCbQuery("We will post it to channel");
+        await ctx.reply(
+            "Send name of the film name that you want to watch"
+        );
+        userState[ctx.from.id] = { step: "awaitingRequestName" };
+    });
+
     bot.action("add_series", async (ctx) => {
         await ctx.answerCbQuery("Adding a series.");
         await ctx.reply(
@@ -133,6 +142,7 @@ export const handleActionButtons = (bot, userState) => {
                                     callback_data: "feedback",
                                 },
                             ],
+                            [{ text: "🎬 Send Movie Request", callback_data: 'send_movie_request' }]
                         ],
                     },
                 }
@@ -209,6 +219,17 @@ export const handleTextInput = async (ctx, userState) => {
             case "awaitingNewSeasonDetails":
                 if (messageText === "Done")
                     await saveNewSeason(ctx, userState, userId);
+                break;
+            case "awaitingRequestName":
+                // Store the request in the database
+                await UserSubmission.create({
+                    userId: userId,
+                    name: ctx.from.first_name,
+                    request: messageText,
+                    timestamp: new Date()
+                });
+        
+                ctx.reply("Thank you! Your request has been submitted.");
                 break;
         }
     }

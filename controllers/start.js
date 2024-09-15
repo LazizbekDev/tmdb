@@ -42,6 +42,7 @@ export const startMessage = async (ctx) => {
                                 callback_data: isAdmin ? "add" : "feedback",
                             },
                         ],
+                        [{ text: "🎬 Send Movie Request", callback_data: 'send_movie_request' }]
                     ],
                 },
             }

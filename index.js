@@ -4,6 +4,7 @@ import { connect } from './db.js';
 import actions from './controllers/actions.js';
 import replyToUser from './controllers/feedback/replyToUser.js';
 import { handleStart } from './controllers/handler.js';
+import { postSubmissionsForVoting } from './utilities/vote.js';
 
 // Load environment variables
 config();
@@ -26,6 +27,8 @@ replyToUser(bot);
 
 // Load other bot actions
 actions(bot);
+
+postSubmissionsForVoting(bot);
 
 const PORT = process.env.PORT || 5000;
 
