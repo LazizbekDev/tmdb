@@ -122,7 +122,7 @@ export const handleActionButtons = (bot, userState) => {
     bot.action("check_membership", async (ctx) => {
         const userId = ctx.from.id;
         const isAdmin =
-        ctx.message.from?.username?.toLowerCase() === process.env.ADMIN;
+        ctx.message?.from?.username?.toLowerCase() === process.env.ADMIN;
         const isMember = await checkUserMembership(userId);
         if (isMember) {
             await ctx.editMessageText(
