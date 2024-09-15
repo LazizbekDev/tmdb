@@ -30,7 +30,7 @@ export const startMessage = async (ctx) => {
 
     if (isMember) {
         return ctx.reply(
-            `Hello ${ctx.message.from.first_name}, welcome to <b>TMDB</b>'s official bot. You're verified user!`,
+            `Hello ${ctx.message.from.first_name}, welcome to <b><a href='https://t.me/${process.env.CHANNEL_USERNAME}'>TMDB</a></b>'s official bot`,
             {
                 parse_mode: "HTML",
                 reply_markup: {
@@ -48,7 +48,7 @@ export const startMessage = async (ctx) => {
         );
     } else {
         return ctx.reply(
-            `Hello ${ctx.message.from.first_name}, welcome to <b>TMDB</b>'s official bot. You need to join our channel to use the bot.`,
+            `Hello ${ctx.message.from.first_name}, welcome to <b><a href='https://t.me/${process.env.CHANNEL_USERNAME}'>TMDB</a></b>'s official bot. You need to join our channel to use the bot.`,
             {
                 parse_mode: "HTML",
                 ...Markup.inlineKeyboard([

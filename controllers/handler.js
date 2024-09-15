@@ -23,18 +23,25 @@ export async function handleStart(ctx) {
 
     // Check if user is a member of the required channel
     if (!isMember) {
-        return ctx.reply(`Please join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to use the bot.`, {
-            parse_mode: "HTML",
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "Join", url: `https://t.me/${process.env.CHANNEL_USERNAME}` }],
-                    [{text: "Check", callback_data: "check_membership"},
+        return ctx.reply(
+            `Please join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to use the bot.`,
+            {
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "Join",
+                                url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
+                            },
+                        ],
+                        [{ text: "Check", callback_data: "check_membership" }],
                     ],
-                ],
-            },
-        });
+                },
+            }
+        );
     }
-    
+
     // If payload exists, try to fetch movie or series by ID
     if (payload) {
         try {
@@ -47,6 +54,7 @@ export async function handleStart(ctx) {
                 return ctx.replyWithVideo(movie.movieUrl, {
                     caption: caption(movie, movie._id),
                     parse_mode: "HTML",
+                    protect_content: true,
                 });
             } else if (series) {
                 for (const season of series.series.sort(
@@ -60,6 +68,7 @@ export async function handleStart(ctx) {
                                 season.seasonNumber
                             }, Episode ${episode.episodeNumber}`,
                             parse_mode: "HTML",
+                            protect_content: true,
                         });
                     }
                 }
@@ -137,6 +146,7 @@ export const handleActionButtons = (bot, userState) => {
 
     bot.action("feedback", async (ctx) => {
         userState[ctx.from.id] = { step: "awaitingFeedback" };
+        await ctx.answerCbQuery("You can send your feedback to admin");
         await ctx.reply("Please send your feedback.");
     });
 };
