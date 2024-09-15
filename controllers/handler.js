@@ -121,6 +121,8 @@ export const handleActionButtons = (bot, userState) => {
 
     bot.action("check_membership", async (ctx) => {
         const userId = ctx.from.id;
+        const isAdmin =
+        ctx.message.from?.username?.toLowerCase() === process.env.ADMIN;
         const isMember = await checkUserMembership(userId);
         if (isMember) {
             await ctx.editMessageText(
@@ -136,10 +138,9 @@ export const handleActionButtons = (bot, userState) => {
                                 },
                             ],
                             [
-                                { text: "Add new", callback_data: "add" },
                                 {
-                                    text: "Send feedback",
-                                    callback_data: "feedback",
+                                    text: isAdmin ? "Add new" : "Send feedback",
+                                    callback_data: isAdmin ? "add" : "feedback",
                                 },
                             ],
                             [{ text: "🎬 Send Movie Request", callback_data: 'send_movie_request' }]
