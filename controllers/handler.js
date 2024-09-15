@@ -23,9 +23,18 @@ export async function handleStart(ctx) {
 
     // Check if user is a member of the required channel
     if (!isMember) {
-        return ctx.reply("Please join the channel to use the bot.");
+        return ctx.reply(`Please join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to use the bot.`, {
+            parse_mode: "HTML",
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "Join", url: `https://t.me/${process.env.CHANNEL_USERNAME}` }],
+                    [{text: "Check", callback_data: "check_membership"},
+                    ],
+                ],
+            },
+        });
     }
-
+    
     // If payload exists, try to fetch movie or series by ID
     if (payload) {
         try {
@@ -40,11 +49,17 @@ export async function handleStart(ctx) {
                     parse_mode: "HTML",
                 });
             } else if (series) {
-                for (const season of series.series.sort((a, b) => a.seasonNumber - b.seasonNumber)) {
-                    for (const episode of season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber)) {
+                for (const season of series.series.sort(
+                    (a, b) => a.seasonNumber - b.seasonNumber
+                )) {
+                    for (const episode of season.episodes.sort(
+                        (a, b) => a.episodeNumber - b.episodeNumber
+                    )) {
                         await ctx.replyWithVideo(episode.fileId, {
-                            caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${season.seasonNumber}, Episode ${episode.episodeNumber}`,
-                            parse_mode: 'HTML'
+                            caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${
+                                season.seasonNumber
+                            }, Episode ${episode.episodeNumber}`,
+                            parse_mode: "HTML",
                         });
                     }
                 }
