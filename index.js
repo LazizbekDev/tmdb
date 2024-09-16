@@ -1,3 +1,4 @@
+import express from 'express';
 import { Telegraf } from 'telegraf';
 import { config } from 'dotenv';
 import { connect } from './db.js';
@@ -30,19 +31,17 @@ actions(bot);
 
 postSubmissionsForVoting(bot);
 
-const PORT = process.env.PORT || 5000;
+const app = express();
 
-if (process.env.NODE_ENV === 'PRODUCTION') {
-    bot.launch({
-        webhook: {
-            domain: process.env.URL,
-            port: PORT
-        }
-    }).then(() => {
-        console.info(`The bot ${bot.botInfo.username} is running on the server`);
-    });
-} else {
-    bot.launch().then(() => {
-        console.info(`The bot ${bot.botInfo.username} is running locally`);
-    });
-}
+// Health check route to keep bot alive
+app.get('/', (req, res) => {
+  res.send('Bot is running!');
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+// Start bot polling (only needed if you're not using webhooks)
+bot.launch();

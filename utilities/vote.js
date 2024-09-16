@@ -19,9 +19,9 @@ export const postSubmissionsForVoting = async (bot) => {
     // Send submissions to the channel
     for (const submission of submissions) {
         await bot.telegram.sendMessage(
-            process.env.ID, 
-            `Film requested by ${submission.name}\nWho wants to watch <b>${submission.request}</b>?`, 
+            process.env.ADMIN_ID, 
+            `Film requested by ${submission.name}\nFilm: <b>${submission.request}</b>?`, 
             { parse_mode: "HTML" }
         );
-    }
+    };
 };
