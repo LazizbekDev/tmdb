@@ -20,7 +20,7 @@ export const postSubmissionsForVoting = async (bot) => {
     for (const submission of submissions) {
         await bot.telegram.sendMessage(
             process.env.ADMIN_ID, 
-            `Film requested by ${submission.name}\nFilm: <b>${submission.request}</b>?`, 
+            `Film requested by ${submission.name}\nFilm: <b>${submission.request}</b>`, 
             { parse_mode: "HTML" }
         );
     };
