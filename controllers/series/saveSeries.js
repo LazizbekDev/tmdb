@@ -21,6 +21,20 @@ export default async function saveSeries(ctx, userState, userId) {
 
     // Clear the user state after saving
     delete userState[userId];
+
+    // Send to the channel
+    await ctx.telegram.sendVideo(process.env.ID, newSeries.teaser, {
+        caption: `
+        🎞 ️<b>${newSeries.name}</b>
+        
+        <i>${newSeries.caption}</i>
+        ▪️Keywords: ${item.keywords?.split(",")}
+            
+        👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${id}">Tap to watch</a>
+            `,
+        parse_mode: "HTML",
+    });
+
     await ctx.replyWithVideo(newSeries.teaser, {
         caption: `<b>${newSeries.name.toUpperCase()}</b> saved successfully!\n🔗 <a href='https://t.me/${
             process.env.BOT_USERNAME
