@@ -20,7 +20,7 @@ export const createUserLink = async (user) => {
     } else {
         return `tg://user?id=${user.id}`;
     }
-}
+};
 
 export const startMessage = async (ctx) => {
     const userId = ctx.message.from.id;
@@ -30,19 +30,29 @@ export const startMessage = async (ctx) => {
 
     if (isMember) {
         return ctx.reply(
-            `Hello ${ctx.message.from.first_name}, welcome to <b><a href='https://t.me/${process.env.CHANNEL_USERNAME}'>TMDB</a></b>'s official bot`,
+            `Hello ${ctx.message.from.first_name}, welcome to <b><a href='https://t.me/${process.env.CHANNEL_USERNAME}'>TMDB</a></b>'s official bot\n\nClick the search button to find movies!\nClick the /list command to see the list of films!`,
             {
                 parse_mode: "HTML",
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: "Search", switch_inline_query_current_chat: "" }],
+                        [
+                            {
+                                text: "Search",
+                                switch_inline_query_current_chat: "",
+                            },
+                        ],
                         [
                             {
                                 text: isAdmin ? "Add new" : "Send feedback",
                                 callback_data: isAdmin ? "add" : "feedback",
                             },
                         ],
-                        [{ text: "🎬 Send Movie Request", callback_data: 'send_movie_request' }]
+                        [
+                            {
+                                text: "🎬 Send Movie Request",
+                                callback_data: "send_movie_request",
+                            },
+                        ],
                     ],
                 },
             }
