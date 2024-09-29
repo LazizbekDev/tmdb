@@ -30,7 +30,12 @@ export const startMessage = async (ctx) => {
 
     if (isMember) {
         return ctx.reply(
-            `Hello ${ctx.message.from.first_name}, welcome to <b><a href='https://t.me/${process.env.CHANNEL_USERNAME}'>TMDB</a></b>'s official bot\n\nClick the search button to find movies!\nClick the /list command to see the list of films!`,
+            `<b>Hey ${ctx.message.from.first_name}! 👋 Welcome to the official TMDB Bot! 🎬</b>
+\n
+<i>🔍 Use the search button to quickly find your favorite movies.\n
+🎥 Want a full list of films? Just hit /list to explore!</i>
+\n
+Enjoy your next favorite watch! 🍿`,
             {
                 parse_mode: "HTML",
                 reply_markup: {
