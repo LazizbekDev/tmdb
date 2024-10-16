@@ -6,7 +6,13 @@ export const checkUserMembership = async (userId) => {
         `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getChatMember?chat_id=${process.env.ID}&user_id=${userId}`
     );
     const data = await response.json();
-    const status = data.result?.status;
+    
+    // Handle cases where the user might not exist or isn't in the chat
+    if (!data.result || !data.result.status) {
+        return false;
+    }
+
+    const status = data.result.status;
     return (
         status === "member" ||
         status === "administrator" ||
@@ -30,12 +36,12 @@ export const startMessage = async (ctx) => {
 
     if (isMember) {
         return ctx.reply(
-            `<b>Hey ${ctx.message.from.first_name}! 👋 Welcome to the official TMDB Bot! 🎬</b>
+            `<b>👋 Hey ${ctx.message.from.first_name},</b>
 \n
 <i>🔍 Use the search button to quickly find your favorite movies.\n
 🎥 Want a full list of films? Just hit /list to explore!</i>
 \n
-Enjoy your next favorite watch! 🍿`,
+Enjoy your next favorite watch!🍿`,
             {
                 parse_mode: "HTML",
                 reply_markup: {

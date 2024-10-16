@@ -1,6 +1,7 @@
 import UserSubmission from "../model/FilmRequest.js";
 import Movie from "../model/MovieModel.js";
 import Series from "../model/SeriesModel.js";
+import User from "../model/User.js";
 import caption from "../utilities/caption.js";
 import info from "./add_new/info.js";
 import add from "./add_new/main.js";
@@ -23,10 +24,21 @@ export async function handleStart(ctx) {
     const isMember = await checkUserMembership(userId);
     const payload = ctx.startPayload;
 
-    // Check if user is a member of the required channel
-    if (!isMember) {
+    // Check if the user already exists in the database
+    let user = await User.findOne({ telegramId: userId });
+
+    // If the user doesn't exist, create a new one
+    if (!user) {
+        user = new User({ telegramId: userId });
+        await user.save(); // Save the new user to the database
+    }
+
+    const limit = 3; // Define your limit for how many movies/series can be accessed
+
+    // If the user is not a member and has reached their limit, prompt them to join the channel
+    if (!isMember && user.accessCount >= limit) {
         return ctx.reply(
-            `Please join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to use the bot.`,
+            `You have reached your free access limit. Please join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to continue using the bot.`,
             {
                 parse_mode: "HTML",
                 reply_markup: {
@@ -47,18 +59,28 @@ export async function handleStart(ctx) {
     // If payload exists, try to fetch movie or series by ID
     if (payload) {
         try {
-            const [movie, series] = await Promise.all([
-                Movie.findById(payload),
-                Series.findById(payload),
-            ]);
+            const movie = await Movie.findById(payload);
 
             if (movie) {
+                if (!isMember) {
+                    user.accessCount++;
+                    await user.save(); // Update user's access count in the database
+                }
+
                 return ctx.replyWithVideo(movie.movieUrl, {
                     caption: caption(movie, movie._id),
                     parse_mode: "HTML",
                     protect_content: false,
                 });
-            } else if (series) {
+            }
+            // Fetch series only if movie is not found
+            const series = await Series.findById(payload);
+            if (series) {
+                if (!isMember) {
+                    user.accessCount++;
+                    await user.save(); // Update user's access count in the database
+                }
+
                 for (const season of series.series.sort(
                     (a, b) => a.seasonNumber - b.seasonNumber
                 )) {
@@ -76,7 +98,7 @@ export async function handleStart(ctx) {
                 }
             } else {
                 return ctx.reply(
-                    "Sorry, the movie or series you are looking for does not exist.\nClick /list to see table of content"
+                    "Sorry, the movie or series you are looking for does not exist.\nClick /list to see the table of content"
                 );
             }
         } catch (error) {
@@ -84,7 +106,7 @@ export async function handleStart(ctx) {
             return ctx.reply("There was an error processing your request.");
         }
     } else {
-        startMessage(ctx); // Or whatever start message you want to send
+        startMessage(ctx); // Or your default start message
     }
 }
 
@@ -264,7 +286,8 @@ export const handleTextInput = async (ctx, userState) => {
                     `👤from ${
                         ctx.from.username
                             ? "@" + ctx.from.username
-                            : "User ID: " + `<code>${userId} - ${ctx.from?.first_name}</code>`
+                            : "User ID: " +
+                              `<code>${userId} - ${ctx.from?.first_name}</code>`
                     }\n\n📝<i>${messageText}</i>\n\nℹ️ to reply: <code>/reply ${userId} Thanks for your feedback ☺️</code>`,
                     {
                         parse_mode: "HTML",
