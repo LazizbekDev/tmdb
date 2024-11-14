@@ -27,19 +27,30 @@ export default async function search(ctx) {
             title: `🎞 Movie: ${movie.name}`,
             input_message_content: {
                 message_text: `
-🎞 "<b>${movie.name}</b>"
+🎞 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
+    movie._id
+}'><b>${movie.name}</b></a>
+
+<i>${movie.caption}</i>
 
 ▪️Size: ${movie.size}
 ▪️Running time: ${movie.duration}
-▪️Keywords: ${movie.keywords.join(", ")}
 
-🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
-                    movie._id
-                }'>Get Movie</a>
+${movie.keywords.join(",")}
 `,
                 parse_mode: "HTML",
             },
             description: `Movie: ${movie.name}`,
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: "Search",
+                            switch_inline_query_current_chat: "",
+                        },
+                    ],
+                ],
+            }
         })),
         ...seriesList.map((series) => ({
             type: "article",
@@ -47,17 +58,27 @@ export default async function search(ctx) {
             title: `📺 Series: ${series.name}`,
             input_message_content: {
                 message_text: `
-📺 "<b>${series.name}</b>"
+ 📺 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
+    series._id
+}'><b>${series.name}</b></a>
 
-▪️Keywords: ${series.keywords.join(", ")}
+<i>${series.caption}</i>
 
-🔗 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
-                    series._id
-                }'>Get Series</a>
+${series.keywords.join(",")}
 `,
                 parse_mode: "HTML",
             },
             description: `Series: ${series.name}`,
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: "Search",
+                            switch_inline_query_current_chat: "",
+                        },
+                    ],
+                ],
+            }
         })),
     ];
 

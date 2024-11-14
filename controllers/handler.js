@@ -18,7 +18,6 @@ import seriesTeaser from "./series/teaser.js";
 import title from "./series/title.js";
 import { checkUserMembership, startMessage } from "./start.js";
 
-// Define the startMessage function
 export async function handleStart(ctx) {
     const userId = ctx.message.from.id;
     const isMember = await checkUserMembership(userId);
@@ -30,10 +29,10 @@ export async function handleStart(ctx) {
     // If the user doesn't exist, create a new one
     if (!user) {
         user = new User({ telegramId: userId });
-        await user.save(); // Save the new user to the database
+        await user.save();
     }
 
-    const limit = 3; // Define your limit for how many movies/series can be accessed
+    const limit = 1;
 
     // If the user is not a member and has reached their limit, prompt them to join the channel
     if (!isMember && user.accessCount >= limit) {
@@ -62,25 +61,52 @@ export async function handleStart(ctx) {
             const movie = await Movie.findById(payload);
 
             if (movie) {
+                ctx.replyWithVideo(movie.movieUrl, {
+                    caption: caption(movie, movie._id, (showLink = false)),
+                    parse_mode: "HTML",
+                    protect_content: !isMember,
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "Search",
+                                    switch_inline_query_current_chat: "",
+                                },
+                            ],
+                        ],
+                    },
+                });
                 if (!isMember) {
                     user.accessCount++;
                     await user.save(); // Update user's access count in the database
-                }
 
-                return ctx.replyWithVideo(movie.movieUrl, {
-                    caption: caption(movie, movie._id),
-                    parse_mode: "HTML",
-                    protect_content: false,
-                });
+                    return ctx.reply(
+                        `You cannot save or share the content unless you join the main <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> `,
+                        {
+                            parse_mode: "HTML",
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "Join",
+                                            url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
+                                        },
+                                    ],
+                                    [
+                                        {
+                                            text: "Check",
+                                            callback_data: "check_membership",
+                                        },
+                                    ],
+                                ],
+                            },
+                        }
+                    );
+                }
             }
             // Fetch series only if movie is not found
             const series = await Series.findById(payload);
             if (series) {
-                if (!isMember) {
-                    user.accessCount++;
-                    await user.save(); // Update user's access count in the database
-                }
-
                 for (const season of series.series.sort(
                     (a, b) => a.seasonNumber - b.seasonNumber
                 )) {
@@ -92,13 +118,66 @@ export async function handleStart(ctx) {
                                 season.seasonNumber
                             }, Episode ${episode.episodeNumber}`,
                             parse_mode: "HTML",
-                            protect_content: true,
+                            protect_content: !isMember,
                         });
                     }
                 }
+                ctx.reply(
+                    "Send the /list command to see the content of the table, or explore new films by clicking the button below.",
+                    {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "Search",
+                                        switch_inline_query_current_chat: "",
+                                    },
+                                ],
+                            ],
+                        },
+                    }
+                );
+                if (!isMember) {
+                    user.accessCount++;
+                    await user.save();
+                    return ctx.reply(
+                        `You cannot save or share the content unless you join the main <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> `,
+                        {
+                            parse_mode: "HTML",
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: "Join",
+                                            url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
+                                        },
+                                    ],
+                                    [
+                                        {
+                                            text: "Check",
+                                            callback_data: "check_membership",
+                                        },
+                                    ],
+                                ],
+                            },
+                        }
+                    );
+                }
             } else {
                 return ctx.reply(
-                    "Sorry, the movie or series you are looking for does not exist.\nClick /list to see the table of content"
+                    "Sorry, the movie or series you are looking for does not exist.\nClick /list to see the table of content",
+                    {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "Search",
+                                        switch_inline_query_current_chat: "",
+                                    },
+                                ],
+                            ],
+                        },
+                    }
                 );
             }
         } catch (error) {
@@ -213,6 +292,63 @@ export const handleActionButtons = (bot, userState) => {
     });
 };
 
+export const handleTextInput = async (ctx, userState) => {
+    const userId = ctx.from.id;
+    const messageText = ctx.message.text;
+
+    if (userState[userId]) {
+        switch (userState[userId].step) {
+            case "awaitingSeriesForNewSeason":
+                await findCurrentSeason(ctx, userState, userId);
+                break;
+            case "awaitingSeriesDetails":
+                await title(ctx, userState, userId);
+                break;
+            case "awaitingDetails":
+                await info(ctx, userState);
+                break;
+            case "awaitingFeedback":
+                await toAdmin(ctx);
+                break;
+            case "awaitingSeriesFiles":
+                if (messageText === "Done") {
+                    await saveSeries(ctx, userState, userId);
+                }
+
+                break;
+            case "awaitingNewSeasonDetails":
+                3;
+                if (messageText === "Done")
+                    await saveNewSeason(ctx, userState, userId);
+                break;
+            case "awaitingRequestName":
+                // Store the request in the database
+                await UserSubmission.create({
+                    userId: userId,
+                    name: ctx.from.first_name,
+                    request: messageText,
+                    timestamp: new Date(),
+                });
+
+                await ctx.telegram.sendMessage(
+                    process.env.ADMIN_ID,
+                    `👤from ${
+                        ctx.from.username
+                            ? "@" + ctx.from.username
+                            : "User ID: " +
+                              `<code>${userId} - ${ctx.from?.first_name}</code>`
+                    }\n\n📝<i>${messageText}</i>\n\nℹ️ to reply: <code>/reply ${userId} Thanks for your feedback ☺️</code>`,
+                    {
+                        parse_mode: "HTML",
+                    }
+                );
+
+                ctx.reply("Thank you! Your request has been submitted.");
+                break;
+        }
+    }
+};
+
 export const handleVideoOrDocument = async (ctx, userState) => {
     const userId = ctx.from.id;
     const file = ctx.message.video || ctx.message.document;
@@ -242,60 +378,6 @@ export const handleVideoOrDocument = async (ctx, userState) => {
                 break;
             default:
                 await ctx.reply("Please start by using the /start command.");
-        }
-    }
-};
-
-export const handleTextInput = async (ctx, userState) => {
-    const userId = ctx.from.id;
-    const messageText = ctx.message.text;
-
-    if (userState[userId]) {
-        switch (userState[userId].step) {
-            case "awaitingSeriesForNewSeason":
-                await findCurrentSeason(ctx, userState, userId);
-                break;
-            case "awaitingSeriesDetails":
-                await title(ctx, userState, userId);
-                break;
-            case "awaitingDetails":
-                await info(ctx, userState);
-                break;
-            case "awaitingFeedback":
-                await toAdmin(ctx);
-                break;
-            case "awaitingSeriesFiles":
-                if (messageText === "Done")
-                    await saveSeries(ctx, userState, userId);
-                break;
-            case "awaitingNewSeasonDetails":
-                if (messageText === "Done")
-                    await saveNewSeason(ctx, userState, userId);
-                break;
-            case "awaitingRequestName":
-                // Store the request in the database
-                await UserSubmission.create({
-                    userId: userId,
-                    name: ctx.from.first_name,
-                    request: messageText,
-                    timestamp: new Date(),
-                });
-
-                await ctx.telegram.sendMessage(
-                    process.env.ADMIN_ID,
-                    `👤from ${
-                        ctx.from.username
-                            ? "@" + ctx.from.username
-                            : "User ID: " +
-                              `<code>${userId} - ${ctx.from?.first_name}</code>`
-                    }\n\n📝<i>${messageText}</i>\n\nℹ️ to reply: <code>/reply ${userId} Thanks for your feedback ☺️</code>`,
-                    {
-                        parse_mode: "HTML",
-                    }
-                );
-
-                ctx.reply("Thank you! Your request has been submitted.");
-                break;
         }
     }
 };
