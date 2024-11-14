@@ -1,9 +1,7 @@
 export default function caption(item, id, showLink = true) {
     return `
-🎞 ️<b>${item.name}</b>
-
-${showLink && `👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${id}">Tap to watch</a>`}
-
+🎞 ️<b>${item.name}\n</b>
+${showLink ? `👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${id}">Tap to watch</a>\n` : ''}
 <i>${item.caption}</i>
 
 ▪️Size: ${item.movieSize ?? item.size}
