@@ -62,7 +62,7 @@ export async function handleStart(ctx) {
 
             if (movie) {
                 ctx.replyWithVideo(movie.movieUrl, {
-                    caption: caption(movie, movie._id, (showLink = false)),
+                    caption: caption(movie, movie._id, false),
                     parse_mode: "HTML",
                     protect_content: !isMember,
                     reply_markup: {

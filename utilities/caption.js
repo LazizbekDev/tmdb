@@ -1,4 +1,4 @@
-export default function caption(item, id, {showLink = true} = {}) {
+export default function caption(item, id, showLink = true) {
     return `
 🎞 ️<b>${item.name}</b>
 

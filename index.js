@@ -7,10 +7,8 @@ import replyToUser from './controllers/feedback/replyToUser.js';
 import { handleStart } from './controllers/handler.js';
 import { postSubmissionsForVoting } from './utilities/vote.js';
 
-// Load environment variables
 config();
 
-// Connect to the database
 connect(process.env.DB).then(() => {
     console.info('Database connection established');
 }).catch((err) => {
