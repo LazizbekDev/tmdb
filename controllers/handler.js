@@ -103,6 +103,7 @@ export async function handleStart(ctx) {
                         }
                     );
                 }
+                return;
             }
             // Fetch series only if movie is not found
             const series = await Series.findById(payload);
@@ -163,6 +164,7 @@ export async function handleStart(ctx) {
                         }
                     );
                 }
+                return;
             } else {
                 return ctx.reply(
                     "Sorry, the movie or series you are looking for does not exist.\nClick /list to see the table of content",
