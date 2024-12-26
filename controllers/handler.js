@@ -108,7 +108,7 @@ After joining, click the "Check Membership" button to unlock full access.
             const movie = await Movie.findById(payload);
 
             if (movie) {
-                if (!movie?.accessedBy.has(userId.toString())) {
+                if (!movie?.accessedBy?.contains(userId.toString())) {
                     movie?.accessedBy.add(userId.toString());
                     movie.views += 1;
                     await movie.save();
