@@ -16,5 +16,14 @@ const SeriesSchema = new mongoose.Schema({
             ],
         },
     ],
+    views: {
+        type: Number,
+        default: 0,
+    },
+    accessedBy: {
+        type: [String],
+        required: true,
+        unique: true,
+    },
 });
 export default mongoose.model("Series", SeriesSchema);
