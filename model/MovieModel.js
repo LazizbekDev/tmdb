@@ -1,38 +1,47 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const movieSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true
+        required: true,
     },
     caption: {
         type: String,
-        required: true
+        required: true,
     },
     movieUrl: {
         type: String,
-        required: true
+        required: true,
     },
     keywords: {
         type: [String],
-        required: true
+        required: true,
     },
     fileType: {
         type: String,
-        required: true
+        required: true,
     },
     teaser: {
         type: String,
-        required: true
+        required: true,
     },
     size: {
         type: String,
-        required: true
+        required: true,
     },
     duration: {
         type: String,
-        required: true
-    }
+        required: true,
+    },
+    views: {
+        type: Number,
+        default: 0,
+    },
+    accessedBy: {
+        type: [String],
+        required: true,
+        unique: true,
+    },
 });
 
-export default mongoose.model('Movie', movieSchema);
+export default mongoose.model("Movie", movieSchema);

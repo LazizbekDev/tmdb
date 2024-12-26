@@ -22,6 +22,8 @@ export async function handleStart(ctx) {
     const userId = ctx.message.from.id;
     const isMember = await checkUserMembership(userId);
     const payload = ctx.startPayload;
+    const userFirstName = ctx.message.from.first_name;
+    const userUsername = ctx.message.from.username || "No username";
 
     // Check if the user already exists in the database
     let user = await User.findOne({ telegramId: userId });
@@ -30,9 +32,54 @@ export async function handleStart(ctx) {
     if (!user) {
         user = new User({ telegramId: userId });
         await user.save();
+        await ctx.replyWithHTML(
+            `
+👋 <b>Welcome to the Movie Bot!</b>
+
+Here's how you can use this bot:
+
+1️⃣ Use the <b>Search</b> feature to find movies or series. 
+   - Type a movie or series name in any chat, and results will appear instantly.
+
+2️⃣ Share your favorites!
+   - Search for a movie/series and send it to friends or groups directly using inline search.
+
+3️⃣ Use Deep Links:
+   - Click a movie link (e.g., <code>https://t.me/${process.env.BOT_USERNAME}?start=movieID</code>) to access specific content.
+
+4️⃣ Request Content:
+   - Can't find something? Use the inline search feature to request a movie or series.
+
+Enjoy unlimited entertainment for free! 🎥🍿
+            `
+        );
+
+        // Optionally ask them to join the channel but delay this step
+        await ctx.replyWithHTML(
+            `
+🔔 To get the latest updates and full access, consider joining our channel:
+👉 <a href="https://t.me/your_channel_link">Join Now</a>
+
+After joining, click the "Check Membership" button to unlock full access.
+            `,
+            {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "Check Membership",
+                                callback_data: "check_membership",
+                            },
+                        ],
+                    ],
+                },
+            }
+        );
+
+        return; // Stop further execution for new users
     }
 
-    const limit = 1;
+    const limit = 10;
 
     // If the user is not a member and has reached their limit, prompt them to join the channel
     if (!isMember && user.accessCount >= limit) {
@@ -61,6 +108,11 @@ export async function handleStart(ctx) {
             const movie = await Movie.findById(payload);
 
             if (movie) {
+                if (!movie?.accessedBy.has(userId.toString())) {
+                    movie?.accessedBy.add(userId.toString());
+                    movie.views += 1;
+                    await movie.save();
+                }
                 ctx.replyWithVideo(movie.movieUrl, {
                     caption: caption(movie, movie._id, false),
                     parse_mode: "HTML",
@@ -76,9 +128,23 @@ export async function handleStart(ctx) {
                         ],
                     },
                 });
+                const adminMessage = `
+                🔔 <b>Movie Accessed</b>
+                ▪️ <b>Movie:</b> ${movie.name}
+                ▪️ <b>Access Count:</b> ${movie?.accessedBy.length}
+                ▪️ <b>User:</b> ${userFirstName} (@${userUsername})
+                ▪️ <b>User ID:</b> ${userId}
+                `;
+                await ctx.telegram.sendMessage(
+                    process.env.ADMIN_ID,
+                    adminMessage,
+                    {
+                        parse_mode: "HTML",
+                    }
+                );
                 if (!isMember) {
                     user.accessCount++;
-                    await user.save(); // Update user's access count in the database
+                    await user.save();
 
                     return ctx.reply(
                         `You cannot save or share the content unless you join the main <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> `,
@@ -105,7 +171,7 @@ export async function handleStart(ctx) {
                 }
                 return;
             }
-            // Fetch series only if movie is not found
+
             const series = await Series.findById(payload);
             if (series) {
                 for (const season of series.series.sort(
