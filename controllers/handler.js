@@ -108,10 +108,10 @@ After joining, click the "Check Membership" button to unlock full access.
             const movie = await Movie.findById(payload);
 
             if (movie) {
-                if (!movie?.accessedBy?.contains(userId.toString())) {
-                    movie?.accessedBy.add(userId.toString());
-                    movie.views += 1;
-                    await movie.save();
+                if (!movie?.accessedBy?.includes(userId.toString())) {
+                    movie?.accessedBy.push(userId.toString()); // Use push() to add the user ID to the array
+                    movie.views += 1; // Increment views count
+                    await movie.save(); // Save the updated movie
                 }
                 ctx.replyWithVideo(movie.movieUrl, {
                     caption: caption(movie, movie._id, false),
