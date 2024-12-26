@@ -112,6 +112,20 @@ After joining, click the "Check Membership" button to unlock full access.
                     movie?.accessedBy.push(userId.toString()); // Use push() to add the user ID to the array
                     movie.views += 1; // Increment views count
                     await movie.save(); // Save the updated movie
+                    const adminMessage = `
+🔔 <b>Movie Accessed</b>
+▪️ <b>Movie:</b> ${movie.name}
+▪️ <b>Access Count:</b> ${movie?.accessedBy.length}
+▪️ <b>User:</b> ${userFirstName} (@${userUsername})
+▪️ <b>User ID:</b> ${userId}
+ `;
+                    await ctx.telegram.sendMessage(
+                        process.env.ADMIN_ID,
+                        adminMessage,
+                        {
+                            parse_mode: "HTML",
+                        }
+                    );
                 }
                 ctx.replyWithVideo(movie.movieUrl, {
                     caption: caption(movie, movie._id, false),
@@ -128,20 +142,7 @@ After joining, click the "Check Membership" button to unlock full access.
                         ],
                     },
                 });
-                const adminMessage = `
-🔔 <b>Movie Accessed</b>
-▪️ <b>Movie:</b> ${movie.name}
-▪️ <b>Access Count:</b> ${movie?.accessedBy.length}
-▪️ <b>User:</b> ${userFirstName} (@${userUsername})
-▪️ <b>User ID:</b> ${userId}
- `;
-                await ctx.telegram.sendMessage(
-                    process.env.ADMIN_ID,
-                    adminMessage,
-                    {
-                        parse_mode: "HTML",
-                    }
-                );
+
                 if (!isMember) {
                     user.accessCount++;
                     await user.save();
@@ -175,9 +176,24 @@ After joining, click the "Check Membership" button to unlock full access.
             const series = await Series.findById(payload);
             if (series) {
                 if (!series?.accessedBy?.includes(userId.toString())) {
-                    series?.accessedBy.push(userId.toString()); // Use push() to add the user ID to the array
-                    series.views += 1; // Increment views count
-                    await series.save(); // Save the updated movie
+                    series?.accessedBy.push(userId.toString());
+                    series.views += 1;
+                    await series.save(); 
+
+                    const adminMessage = `
+🔔 <b>Series Accessed</b>
+▪️ <b>Series:</b> ${series.name}
+▪️ <b>Access Count:</b> ${series?.accessedBy.length}
+▪️ <b>User:</b> ${userFirstName} (@${userUsername})
+▪️ <b>User ID:</b> ${userId}
+ `;
+                    await ctx.telegram.sendMessage(
+                        process.env.ADMIN_ID,
+                        adminMessage,
+                        {
+                            parse_mode: "HTML",
+                        }
+                    );
                 }
                 for (const season of series.series.sort(
                     (a, b) => a.seasonNumber - b.seasonNumber
@@ -209,20 +225,7 @@ After joining, click the "Check Membership" button to unlock full access.
                         },
                     }
                 );
-                const adminMessage = `
-🔔 <b>Movie Accessed</b>
-▪️ <b>Movie:</b> ${series.name}
-▪️ <b>Access Count:</b> ${series?.accessedBy.length}
-▪️ <b>User:</b> ${userFirstName} (@${userUsername})
-▪️ <b>User ID:</b> ${userId}
- `;
-                await ctx.telegram.sendMessage(
-                    process.env.ADMIN_ID,
-                    adminMessage,
-                    {
-                        parse_mode: "HTML",
-                    }
-                );
+
                 if (!isMember) {
                     user.accessCount++;
                     await user.save();
