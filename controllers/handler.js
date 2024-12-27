@@ -467,8 +467,8 @@ export const handleTextInput = async (ctx, userState) => {
         const seriesCount = seriesList.length;
 
         // Calculate total pages for pagination
-        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / 20);
-        const content = formatList(movies, seriesList, page, 20);
+        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / 30);
+        const content = formatList(movies, seriesList, page, 30);
         const paginationButtons = generatePaginationButtons(page, totalPages);
 
         // Generate the header with counts
