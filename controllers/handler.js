@@ -8,7 +8,11 @@ import add from "./add_new/main.js";
 import movie from "./add_new/movie.js";
 import teaser from "./add_new/teaser.js";
 import toAdmin from "./feedback/toAdmin.js";
-import formatList, { generatePaginationButtons } from "./list/formatList.js";
+import formatList, {
+    calculateTotalPages,
+    generateHeader,
+    generatePaginationButtons,
+} from "./list/formatList.js";
 import episodes from "./series/episodes.js";
 import saveSeries from "./series/saveSeries.js";
 import addNewEpisode from "./series/seasons/add_new.js";
@@ -39,7 +43,7 @@ export async function handleStart(ctx) {
 Here's how you can use this bot:
 
 1️⃣ Use the <b>Search</b> feature to find movies or series. 
-   - Type a movie or series name in any chat, and results will appear instantly.
+   - Type <code>@${process.env.BOT_USERNAME}</code> and movie or series name in any chat, and results will appear instantly.
 
 2️⃣ Share your favorites!
    - Search for a movie/series and send it to friends or groups directly using inline search.
@@ -299,7 +303,7 @@ export const handleActionButtons = (bot, userState) => {
         const totalSeriesCount = series.length;
 
         const totalPages = Math.ceil(
-            (totalMoviesCount + totalSeriesCount) / limit
+            Math.max(totalMoviesCount, totalSeriesCount) / 10
         );
 
         const content = formatList(movies, series, page, limit);
@@ -441,6 +445,46 @@ export const handleTextInput = async (ctx, userState) => {
                 ctx.reply("Thank you! Your request has been submitted.");
                 break;
         }
+    }
+    console.log(messageText);
+    try {
+        const page = 1;
+        const [movies, seriesList] = await Promise.all([
+            Movie.find({
+                $or: [
+                    { name: { $regex: messageText, $options: "i" } },
+                    { keywords: { $regex: messageText, $options: "i" } },
+                ],
+            }),
+            Series.find({
+                $or: [
+                    { name: { $regex: messageText, $options: "i" } },
+                    { keywords: { $regex: messageText, $options: "i" } },
+                ],
+            }),
+        ]);
+
+        console.log(movies);
+        const moviesCount = movies.length;
+        const seriesCount = seriesList.length;
+
+        // Calculate total pages for pagination
+        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / 10);
+        const content = formatList(movies, seriesList, page, 10);
+        const paginationButtons = generatePaginationButtons(page, totalPages);
+
+        // Generate the header with counts
+        const header = generateHeader(moviesCount, seriesCount);
+
+        // Send the formatted list, header, and pagination buttons to the user
+        await ctx.replyWithHTML(`${header}${content}`, {
+            reply_markup: {
+                inline_keyboard: paginationButtons,
+            },
+        });
+    } catch (error) {
+        console.log(error);
+        await ctx.reply("Something went wrong while processing your request.");
     }
 };
 

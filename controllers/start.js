@@ -76,21 +76,46 @@ Enjoy your next favorite watch!🍿`,
             }
         );
     } else {
-        return ctx.reply(
-            `Hello ${ctx.message.from.first_name}, welcome to <b><a href='https://t.me/${process.env.CHANNEL_USERNAME}'>TMDB</a></b>'s official bot. You need to join our channel to use the bot.`,
+        await ctx.replyWithHTML(
+            `
+👋 <b>Welcome to the Movie Bot!</b>
+
+Here's how you can use this bot:
+
+1️⃣ Use the <b>Search</b> feature to find movies or series. 
+   - Type <code>@${process.env.BOT_USERNAME}</code> and movie or series name in any chat, and results will appear instantly.
+
+2️⃣ Share your favorites!
+   - Search for a movie/series and send it to friends or groups directly using inline search.
+
+3️⃣ Request Content:
+   - Can't find something? Use the inline search feature to request a movie or series.
+
+Enjoy unlimited entertainment for free! 🎥🍿
+            `
+        );
+
+        // Optionally ask them to join the channel but delay this step
+        await ctx.replyWithHTML(
+            `
+🔔 To get the latest updates and full access, consider joining our channel:
+👉 <a href="https://t.me/${process.env.CHANNEL_USERNAME}">Join Now</a>
+
+After joining, click the "Check Membership" button to unlock full access.
+            `,
             {
-                parse_mode: "HTML",
-                ...Markup.inlineKeyboard([
-                    Markup.button.url(
-                        "Join Channel",
-                        `https://t.me/${process.env.CHANNEL_USERNAME}`
-                    ),
-                    Markup.button.callback(
-                        "Check Membership",
-                        "check_membership"
-                    ),
-                ]),
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "Check Membership",
+                                callback_data: "check_membership",
+                            },
+                        ],
+                    ],
+                },
             }
         );
+        return;
     }
 };
