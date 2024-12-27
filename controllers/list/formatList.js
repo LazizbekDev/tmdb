@@ -45,13 +45,13 @@ export default function formatList(movies, series, page, limit) {
     return `${movieList}\n\n${seriesList}`;
 }
 
-export const generatePaginationButtons = (currentPage, totalPages) => {
+export const generatePaginationButtons = (currentPage, totalPages, specific) => {
     const buttons = [];
 
     if (currentPage > 1) {
         buttons.push({
             text: "⬅️",
-            callback_data: `list_page_${currentPage - 1}`,
+            callback_data: `list_page_${currentPage - 1}${specific}`,
         });
     }
 

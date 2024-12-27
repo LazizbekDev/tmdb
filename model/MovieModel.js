@@ -40,7 +40,6 @@ const movieSchema = new mongoose.Schema({
     accessedBy: {
         type: [String],
         required: true,
-        unique: true,
     },
 });
 

@@ -23,7 +23,6 @@ const SeriesSchema = new mongoose.Schema({
     accessedBy: {
         type: [String],
         required: true,
-        unique: true,
     },
 });
 export default mongoose.model("Series", SeriesSchema);

@@ -14,6 +14,7 @@ export default async function teaser(ctx, userState) {
         size: userState[userId].movieSize,
         duration: userState[userId].duration,
         keywords: userState[userId].keywords.split(","),
+        accessedBy: []
     });
 
     await movie.save();

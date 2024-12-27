@@ -80,7 +80,6 @@ After joining, click the "Check Membership" button to unlock full access.
             }
         );
 
-        return; // Stop further execution for new users
     }
 
     const limit = 10;
@@ -468,8 +467,8 @@ export const handleTextInput = async (ctx, userState) => {
         const seriesCount = seriesList.length;
 
         // Calculate total pages for pagination
-        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / 10);
-        const content = formatList(movies, seriesList, page, 10);
+        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / 20);
+        const content = formatList(movies, seriesList, page, 20);
         const paginationButtons = generatePaginationButtons(page, totalPages);
 
         // Generate the header with counts
