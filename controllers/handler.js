@@ -446,7 +446,7 @@ export const handleTextInput = async (ctx, userState) => {
                 break;
         }
     }
-    console.log(messageText);
+
     try {
         const page = 1;
         const [movies, seriesList] = await Promise.all([
@@ -464,7 +464,6 @@ export const handleTextInput = async (ctx, userState) => {
             }),
         ]);
 
-        console.log(movies);
         const moviesCount = movies.length;
         const seriesCount = seriesList.length;
 
