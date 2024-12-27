@@ -1,12 +1,13 @@
 import { Markup } from "telegraf";
 import fetch from "node-fetch";
+import User from "../model/User.js";
 
 export const checkUserMembership = async (userId) => {
     const response = await fetch(
         `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getChatMember?chat_id=${process.env.ID}&user_id=${userId}`
     );
     const data = await response.json();
-    
+
     // Handle cases where the user might not exist or isn't in the chat
     if (!data.result || !data.result.status) {
         return false;
@@ -35,6 +36,12 @@ export const startMessage = async (ctx) => {
     const isMember = await checkUserMembership(userId);
 
     if (isMember) {
+        await User.findOneAndUpdate(
+            { telegramId: userId }, // Filter: Find the user by telegramId
+            { $set: { isSubscribed: true } }, // Update: Set isSubscribed to true
+            { new: true } // Options: Return the updated document
+        );
+
         return ctx.reply(
             `<b>👋 Hey ${ctx.message.from.first_name},</b>
 \n

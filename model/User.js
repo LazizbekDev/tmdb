@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema({
     isSubscribed: {
         type: Boolean,
         default: false,  // Track whether they've joined the channel or not
+    },
+    leftTheBot: {
+        type: Boolean,
+        default: false,
     }
 });
 

@@ -58,7 +58,7 @@ Enjoy unlimited entertainment for free! 🎥🍿
         await ctx.replyWithHTML(
             `
 🔔 To get the latest updates and full access, consider joining our channel:
-👉 <a href="https://t.me/your_channel_link">Join Now</a>
+👉 <a href="https://t.me/${process.env.CHANNEL_USERNAME}">Join Now</a>
 
 After joining, click the "Check Membership" button to unlock full access.
             `,
@@ -178,7 +178,7 @@ After joining, click the "Check Membership" button to unlock full access.
                 if (!series?.accessedBy?.includes(userId.toString())) {
                     series?.accessedBy.push(userId.toString());
                     series.views += 1;
-                    await series.save(); 
+                    await series.save();
 
                     const adminMessage = `
 🔔 <b>Series Accessed</b>
@@ -340,6 +340,11 @@ export const handleActionButtons = (bot, userState) => {
             ctx.message?.from?.username?.toLowerCase() === process.env.ADMIN;
         const isMember = await checkUserMembership(userId);
         if (isMember) {
+            await User.findOneAndUpdate(
+                { telegramId: userId }, // Filter: Find the user by telegramId
+                { $set: { isSubscribed: true } }, // Update: Set isSubscribed to true
+                { new: true } // Options: Return the updated document
+            );
             await ctx.editMessageText(
                 "You are now verified! Use the buttons below:",
                 {

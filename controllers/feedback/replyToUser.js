@@ -1,4 +1,5 @@
 import Feedback from "../../model/Feedback.js";
+import User from "../../model/User.js";
 
 export default async function replyToUser(bot) {
     bot.command("reply", async (ctx) => {
@@ -10,6 +11,7 @@ export default async function replyToUser(bot) {
 
         const [userId, ...response] = ctx.message.text.split(" ").slice(1);
         const replyMessage = response.join(" ");
+        const isMemberOfTheBot = await User.findOne({telegramId: userId});
 
         if (!userId || !replyMessage) {
             return ctx.reply(
@@ -18,6 +20,11 @@ export default async function replyToUser(bot) {
         }
 
         // Send the reply to the user
+        if (isMemberOfTheBot.leftTheBot) {
+            await ctx.reply("Sorry, this user blocked the bot!");
+            return;
+        }
+
         await ctx.telegram.sendMessage(
             userId,
             `Admin's reply: ${replyMessage}`
@@ -29,7 +36,7 @@ export default async function replyToUser(bot) {
             { replied: true }
         );
 
-        await ctx.reply("Your reply has been sent.");
+        return await ctx.reply("Your reply has been sent.");
     });
 
     bot.command("messages", async (ctx) => {
