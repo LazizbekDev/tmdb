@@ -96,7 +96,7 @@ Enjoy unlimited entertainment for free! 🎥🍿
         );
 
         // Optionally ask them to join the channel but delay this step
-        await ctx.replyWithHTML(
+        return await ctx.replyWithHTML(
             `
 🔔 To get the latest updates and full access, consider joining our channel:
 👉 <a href="https://t.me/${process.env.CHANNEL_USERNAME}">Join Now</a>
@@ -116,6 +116,5 @@ After joining, click the "Check Membership" button to unlock full access.
                 },
             }
         );
-        return;
     }
 };

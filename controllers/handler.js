@@ -9,7 +9,6 @@ import movie from "./add_new/movie.js";
 import teaser from "./add_new/teaser.js";
 import toAdmin from "./feedback/toAdmin.js";
 import formatList, {
-    calculateTotalPages,
     generateHeader,
     generatePaginationButtons,
 } from "./list/formatList.js";
@@ -55,12 +54,6 @@ Here's how you can use this bot:
    - Can't find something? Use the inline search feature to request a movie or series.
 
 Enjoy unlimited entertainment for free! 🎥🍿
-            `
-        );
-
-        // Optionally ask them to join the channel but delay this step
-        await ctx.replyWithHTML(
-            `
 🔔 To get the latest updates and full access, consider joining our channel:
 👉 <a href="https://t.me/${process.env.CHANNEL_USERNAME}">Join Now</a>
 
@@ -79,10 +72,9 @@ After joining, click the "Check Membership" button to unlock full access.
                 },
             }
         );
-
     }
 
-    const limit = 10;
+    const limit = 1;
 
     // If the user is not a member and has reached their limit, prompt them to join the channel
     if (!isMember && user.accessCount >= limit) {
@@ -114,6 +106,8 @@ After joining, click the "Check Membership" button to unlock full access.
                 if (!movie?.accessedBy?.includes(userId.toString())) {
                     movie?.accessedBy.push(userId.toString()); // Use push() to add the user ID to the array
                     movie.views += 1; // Increment views count
+                    user.accessedMovies.push(movie._id);
+                    await user.save();
                     await movie.save(); // Save the updated movie
                     const adminMessage = `
 🔔 <b>Movie Accessed</b>

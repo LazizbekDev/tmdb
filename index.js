@@ -6,6 +6,9 @@ import actions from './controllers/actions.js';
 import replyToUser from './controllers/feedback/replyToUser.js';
 import { handleStart } from './controllers/handler.js';
 import { postSubmissionsForVoting } from './utilities/vote.js';
+import User from './model/User.js';
+import { suggestMovie } from './controllers/suggestion.js';
+import cron from "node-cron";
 
 config();
 
@@ -26,8 +29,27 @@ replyToUser(bot);
 
 // Load other bot actions
 actions(bot);
-
 postSubmissionsForVoting(bot);
+
+cron.schedule("0 12 * * 0", async () => {
+  console.log("Running weekly movie suggestion job...");
+
+  try {
+      const users = await User.find(); // Get all registered users
+      for (const user of users) {
+          try {
+              await suggestMovie(bot, user.telegramId); // Suggest a movie to the user
+          } catch (err) {
+              console.error(
+                  `Error suggesting movie to user ${user.telegramId}:`,
+                  err
+              );
+          }
+      }
+  } catch (error) {
+      console.error("Error running weekly suggestion job:", error);
+  }
+});
 
 const app = express();
 

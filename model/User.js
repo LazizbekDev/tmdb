@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
     telegramId: {
@@ -8,22 +8,30 @@ const userSchema = new mongoose.Schema({
     },
     accessCount: {
         type: Number,
-        default: 0,  // Tracks how many movies they have accessed
+        default: 0, // Tracks how many movies they have accessed
     },
     lastAccessed: {
         type: Date,
-        default: Date.now,  // Optionally track when they last accessed a movie
+        default: Date.now, // Optionally track when they last accessed a movie
+    },
+    suggestedMovies: {
+        type: [String],
+        default: [], // IDs of movies suggested to this user
+    },
+    accessedMovies: {
+        type: [String],
+        default: [], // IDs of movies the user has accessed
     },
     isSubscribed: {
         type: Boolean,
-        default: false,  // Track whether they've joined the channel or not
+        default: false, // Track whether they've joined the channel or not
     },
     leftTheBot: {
         type: Boolean,
         default: false,
-    }
+    },
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 
 export default User;

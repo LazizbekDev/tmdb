@@ -70,10 +70,10 @@ export default function actions(bot) {
             const query = callbackData.replace("request_", "");
 
             // Respond to the user
-            await ctx.answerCbQuery(); // Acknowledge the callback query to Telegram
-            await ctx.reply(
-                `✅ Your request for "${query}" has been submitted successfully!`
-            );
+            await ctx.answerCbQuery(`✅ Your request for "${query}" has been submitted successfully!`); // Acknowledge the callback query to Telegram
+            // await ctx.reply(
+            //     `✅ Your request for "${query}" has been submitted successfully!`
+            // );
 
             // Optionally, send the request to an admin or log it
             const adminMessage = `
@@ -83,7 +83,7 @@ export default function actions(bot) {
 ▪️ <b>User ID:</b> ${ctx.from.id}
 `;
             await ctx.telegram.sendMessage(
-                process.env.ADMIN_ID, // Replace with your admin ID
+                process.env.ADMIN_ID,
                 adminMessage,
                 { parse_mode: "HTML" }
             );
