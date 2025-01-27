@@ -21,10 +21,11 @@ export const suggestMovie = async (bot, userId) => {
         }
 
         // Suggest the movie to the user
-        await bot.telegram.sendMessage(
+        await bot.telegram.sendVideo(
             userId,
-            `🎥 Suggested Movie: ${movie.name}\n\n${movie.caption}`,
+            movie.teaser,
             {
+                caption: `🎥 Suggested Movie: ${movie.name}\n\n${movie.caption}`,
                 parse_mode: "HTML",
                 reply_markup: {
                     inline_keyboard: [

@@ -31,14 +31,14 @@ replyToUser(bot);
 actions(bot);
 postSubmissionsForVoting(bot);
 
-cron.schedule("0 12 * * 0", async () => {
+cron.schedule("*/1 * * * *", async () => {
   console.log("Running weekly movie suggestion job...");
 
   try {
-      const users = await User.find(); // Get all registered users
+      const users = await User.find();
       for (const user of users) {
           try {
-              await suggestMovie(bot, user.telegramId); // Suggest a movie to the user
+              await suggestMovie(bot, user.telegramId);
           } catch (err) {
               console.error(
                   `Error suggesting movie to user ${user.telegramId}:`,
