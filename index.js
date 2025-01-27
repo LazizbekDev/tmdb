@@ -31,7 +31,7 @@ replyToUser(bot);
 actions(bot);
 postSubmissionsForVoting(bot);
 
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("0 12 * * 0", async () => {
   console.log("Running weekly movie suggestion job...");
 
   try {
