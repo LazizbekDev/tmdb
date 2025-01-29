@@ -288,28 +288,33 @@ export const handleActionButtons = (bot, userState) => {
     bot.action(/list_page_(\d+)/, async (ctx) => {
         const page = parseInt(ctx.match[1], 10); // Get the page number from the callback data
         const limit = 10; // Show 10 movies/series per page
-    
+
         // Paginate and fetch movies and series, sorted by the newest first
         const movies = await Movie.find({})
-            .sort({ _id: -1 })
+            .sort({ _id: -1 }) // Sort by most recent
             .limit(limit)
-            .skip((page - 1) * limit);
-    
+            .skip((page - 1) * limit); // Skip previous pages
+
         const series = await Series.find({})
-            .sort({ _id: -1 })
+            .sort({ _id: -1 }) // Sort by most recent
             .limit(limit)
-            .skip((page - 1) * limit);
+            .skip((page - 1) * limit); // Skip previous pages
 
-        const totalMoviesCount = movies.length;
-        const totalSeriesCount = series.length;
+        const totalMoviesCount = await Movie.countDocuments({});
+        const totalSeriesCount = await Series.countDocuments({});
 
+        // Calculate the total number of pages (ensuring pagination logic works)
         const totalPages = Math.ceil(
-            Math.max(totalMoviesCount, totalSeriesCount) / 10
+            Math.max(totalMoviesCount, totalSeriesCount) / limit
         );
 
+        // Format the list for the current page
         const content = formatList(movies, series, page, limit);
+
+        // Generate the pagination buttons for the current page
         const paginationButtons = generatePaginationButtons(page, totalPages);
 
+        // Edit the existing message to update the list with pagination
         await ctx.editMessageText(content, {
             parse_mode: "HTML",
             reply_markup: {

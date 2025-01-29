@@ -16,12 +16,13 @@ const userState = {};
 
 export default function actions(bot) {
     bot.command("list", async (ctx) => {
-        const page = parseInt(ctx.match?.[1] || 1); // Get the page from the callback data, default to 1
+        const page = parseInt(ctx.match?.[1] || 1, 10); // Ensure it's a number
         const limit = 10; // Show 10 movies/series per page
         const movies = await Movie.find({})
             .sort({ _id: -1 }) // Sort by newest first
             .limit(limit)
             .skip((page - 1) * limit);
+    
         const series = await Series.find({})
             .sort({ _id: -1 }) // Sort by newest first
             .limit(limit)

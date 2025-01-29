@@ -64,21 +64,18 @@ export const generatePaginationButtons = (currentPage, totalPages) => {
     // Ensure there's at least some space around the current page
     if (totalPages > maxButtons) {
         if (currentPage <= 4) {
-            end = Math.min(maxButtons, totalPages); // Show first 7 pages if on the start
+            end = Math.min(maxButtons, totalPages); // Show first pages if near the start
         } else if (currentPage >= totalPages - 3) {
-            start = totalPages - maxButtons + 1; // Show last 7 pages if near the end
+            start = totalPages - maxButtons + 1; // Show last pages if near the end
         } else {
-            start = currentPage - 3; // Show a range of 7 pages around the current page
+            start = currentPage - 3; // Show a range of pages around the current page
             end = currentPage + 3;
         }
     }
 
     // Add the page number buttons
     for (let i = start; i <= end; i++) {
-        if (i === currentPage) {
-            // Skip the current page
-            continue;
-        }
+        if (i === currentPage) continue; // Skip the current page
         buttons.push({ text: `${i}`, callback_data: `list_page_${i}` });
     }
 
@@ -92,6 +89,7 @@ export const generatePaginationButtons = (currentPage, totalPages) => {
 
     return [buttons];
 };
+
 
 export const generateHeader = (moviesCount, seriesCount) => {
     const totalCount = moviesCount + seriesCount;
