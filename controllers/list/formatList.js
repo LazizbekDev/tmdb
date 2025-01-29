@@ -51,7 +51,7 @@ export const generatePaginationButtons = (
     specific
 ) => {
     const buttons = [];
-    const maxButtons = 7; // Limit the number of buttons to 7
+    const maxButtons = 5; // Limit the number of buttons to 7
 
     // Add the "Previous" button if not on the first page
     if (currentPage > 1) {
