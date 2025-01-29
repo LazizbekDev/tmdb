@@ -2,47 +2,29 @@ export default function formatList(movies, series, page, limit) {
     let movieList = "<b>Movies:</b>\n";
     let seriesList = "<b>Series:</b>\n";
 
-    // Calculate the start and end of the pagination range for movies and series
-    const moviePageStart = (page - 1) * limit;
-    const moviePageEnd = moviePageStart + limit;
-    const seriesPageStart = (page - 1) * limit;
-    const seriesPageEnd = seriesPageStart + limit;
-
-    // Paginate movies and series separately
-    const paginatedMovies = movies.slice(moviePageStart, moviePageEnd);
-    const paginatedSeries = series.slice(seriesPageStart, seriesPageEnd);
-
-    // Format the movies list
-    if (paginatedMovies.length > 0) {
-        movieList += paginatedMovies
-            .map(
-                (movie, index) =>
-                    `${moviePageStart + index + 1}. <a href="https://t.me/${
-                        process.env.BOT_USERNAME
-                    }?start=${encodeURIComponent(movie._id)}">${movie.name}</a>`
+    // Format movies list
+    if (movies.length > 0) {
+        movieList += movies
+            .map((movie, index) => 
+                `${(page - 1) * limit + index + 1}. <a href="https://t.me/${process.env.BOT_USERNAME}?start=${encodeURIComponent(movie._id)}">${movie.name}</a>`
             )
             .join("\n");
     } else {
         movieList += "No movies available.";
     }
 
-    // Format the series list
-    if (paginatedSeries.length > 0) {
-        seriesList += paginatedSeries
-            .map(
-                (seriesItem, index) =>
-                    `${seriesPageStart + index + 1}. <a href="https://t.me/${
-                        process.env.BOT_USERNAME
-                    }?start=${encodeURIComponent(seriesItem._id)}">${
-                        seriesItem.name
-                    }</a>`
+    // Format series list
+    if (series.length > 0) {
+        seriesList += series
+            .map((seriesItem, index) => 
+                `${(page - 1) * limit + index + 1}. <a href="https://t.me/${process.env.BOT_USERNAME}?start=${encodeURIComponent(seriesItem._id)}">${seriesItem.name}</a>`
             )
             .join("\n");
     } else {
         seriesList += "No series available.";
     }
 
-    // Combine the lists and return the result
+    // Combine movie and series list
     return `${movieList}\n\n${seriesList}`;
 }
 

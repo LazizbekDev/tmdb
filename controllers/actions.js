@@ -16,31 +16,42 @@ const userState = {};
 
 export default function actions(bot) {
     bot.command("list", async (ctx) => {
-        const page = parseInt(ctx.match?.[1] || 1, 10); // Ensure it's a number
+        const page = parseInt(ctx.match?.[1] || 1); // Get the page from the callback data, default to 1
         const limit = 10; // Show 10 movies/series per page
+
+        // Fetch the movies and series from the database with pagination
         const movies = await Movie.find({})
-            .sort({ _id: -1 }) // Sort by newest first
-            .limit(limit)
-            .skip((page - 1) * limit);
-    
+            .sort({ _id: -1 })
+            .skip((page - 1) * limit) // Skip the appropriate number of movies
+            .limit(limit); // Limit the results to `limit`
+
         const series = await Series.find({})
-            .sort({ _id: -1 }) // Sort by newest first
-            .limit(limit)
-            .skip((page - 1) * limit);
-    
+            .sort({ _id: -1 })
+            .skip((page - 1) * limit) // Skip the appropriate number of series
+            .limit(limit); // Limit the results to `limit`
+
+        // Get the total counts of movies and series for pagination calculations
         const moviesCount = await Movie.countDocuments({});
         const seriesCount = await Series.countDocuments({});
-        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
-    
-        // Show total count header only on the first page
+
+        // Calculate total number of pages for pagination (based on max of movies or series)
+        const totalPages = Math.ceil(
+            Math.max(moviesCount, seriesCount) / limit
+        );
+
+        // Generate the header for the first page
         let header = "";
         if (page === 1) {
-            header = generateHeader(moviesCount, seriesCount);
+            header = generateHeader(moviesCount, seriesCount); // Call your header generator function
         }
-    
+
+        // Format the movies and series list
         const content = header + formatList(movies, series, page, limit);
+
+        // Generate pagination buttons
         const paginationButtons = generatePaginationButtons(page, totalPages);
-    
+
+        // Send the message with content and pagination buttons
         await ctx.reply(content, {
             parse_mode: "HTML",
             reply_markup: {
@@ -48,7 +59,6 @@ export default function actions(bot) {
             },
         });
     });
-    
 
     bot.on("inline_query", search);
 

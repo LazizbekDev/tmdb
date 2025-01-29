@@ -300,9 +300,6 @@ export const handleActionButtons = (bot, userState) => {
             .limit(limit)
             .skip((page - 1) * limit);
 
-        console.log("Fetched Movies: ", movies);
-        console.log("Fetched Series: ", series);
-
         const totalMoviesCount = await Movie.countDocuments({});
         const totalSeriesCount = await Series.countDocuments({});
 
