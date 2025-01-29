@@ -45,15 +45,15 @@ export default function formatList(movies, series, page, limit) {
     return `${movieList}\n\n${seriesList}`;
 }
 
-export const generatePaginationButtons = (currentPage, totalPages, specific) => {
+export const generatePaginationButtons = (currentPage, totalPages) => {
     const buttons = [];
-    const maxButtons = 7; // Limit the number of buttons to 7
+    const maxButtons = 5; // Limit the number of buttons to 7
 
     // Add the "Previous" button if not on the first page
     if (currentPage > 1) {
         buttons.push({
             text: "⬅️",
-            callback_data: `list_page_${currentPage - 1}${specific}`,
+            callback_data: `list_page_${currentPage - 1}`,
         });
     }
 
@@ -79,14 +79,14 @@ export const generatePaginationButtons = (currentPage, totalPages, specific) => 
             // Skip the current page
             continue;
         }
-        buttons.push({ text: `${i}`, callback_data: `list_page_${i}${specific}` });
+        buttons.push({ text: `${i}`, callback_data: `list_page_${i}` });
     }
 
     // Add the "Next" button if not on the last page
     if (currentPage < totalPages) {
         buttons.push({
             text: "➡️",
-            callback_data: `list_page_${currentPage + 1}${specific}`,
+            callback_data: `list_page_${currentPage + 1}`,
         });
     }
 

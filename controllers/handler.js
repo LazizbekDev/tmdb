@@ -286,11 +286,19 @@ export const handleActionButtons = (bot, userState) => {
     });
 
     bot.action(/list_page_(\d+)/, async (ctx) => {
-        const page = parseInt(ctx.match[1], 10);
-        const limit = 10;
-
-        const movies = await Movie.find({});
-        const series = await Series.find({});
+        const page = parseInt(ctx.match[1], 10); // Get the page number from the callback data
+        const limit = 10; // Show 10 movies/series per page
+    
+        // Paginate and fetch movies and series, sorted by the newest first
+        const movies = await Movie.find({})
+            .sort({ _id: -1 })
+            .limit(limit)
+            .skip((page - 1) * limit);
+    
+        const series = await Series.find({})
+            .sort({ _id: -1 })
+            .limit(limit)
+            .skip((page - 1) * limit);
 
         const totalMoviesCount = movies.length;
         const totalSeriesCount = series.length;

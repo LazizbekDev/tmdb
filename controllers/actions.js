@@ -26,26 +26,20 @@ export default function actions(bot) {
             .sort({ _id: -1 }) // Sort by newest first
             .limit(limit)
             .skip((page - 1) * limit);
-
+    
         const moviesCount = await Movie.countDocuments({});
         const seriesCount = await Series.countDocuments({});
-        const totalPages = Math.ceil(
-            Math.max(moviesCount, seriesCount) / limit
-        );
-
+        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
+    
         // Show total count header only on the first page
         let header = "";
         if (page === 1) {
             header = generateHeader(moviesCount, seriesCount);
         }
-
+    
         const content = header + formatList(movies, series, page, limit);
-        const paginationButtons = generatePaginationButtons(
-            page,
-            totalPages,
-            `&specific=${page}`
-        );
-
+        const paginationButtons = generatePaginationButtons(page, totalPages);
+    
         await ctx.reply(content, {
             parse_mode: "HTML",
             reply_markup: {
@@ -53,6 +47,7 @@ export default function actions(bot) {
             },
         });
     });
+    
 
     bot.on("inline_query", search);
 
