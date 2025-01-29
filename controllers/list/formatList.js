@@ -2,16 +2,17 @@ export default function formatList(movies, series, page, limit) {
     let movieList = "<b>Movies:</b>\n";
     let seriesList = "<b>Series:</b>\n";
 
+    // Calculate the start and end of the pagination range for movies and series
     const moviePageStart = (page - 1) * limit;
     const moviePageEnd = moviePageStart + limit;
     const seriesPageStart = (page - 1) * limit;
     const seriesPageEnd = seriesPageStart + limit;
 
-    // Paginate movies
+    // Paginate movies and series separately
     const paginatedMovies = movies.slice(moviePageStart, moviePageEnd);
     const paginatedSeries = series.slice(seriesPageStart, seriesPageEnd);
 
-    // Format movies list
+    // Format the movies list
     if (paginatedMovies.length > 0) {
         movieList += paginatedMovies
             .map(
@@ -25,7 +26,7 @@ export default function formatList(movies, series, page, limit) {
         movieList += "No movies available.";
     }
 
-    // Format series list
+    // Format the series list
     if (paginatedSeries.length > 0) {
         seriesList += paginatedSeries
             .map(
@@ -41,7 +42,7 @@ export default function formatList(movies, series, page, limit) {
         seriesList += "No series available.";
     }
 
-    // Combine movie and series list
+    // Combine the lists and return the result
     return `${movieList}\n\n${seriesList}`;
 }
 

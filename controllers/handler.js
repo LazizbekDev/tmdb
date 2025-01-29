@@ -291,30 +291,29 @@ export const handleActionButtons = (bot, userState) => {
 
         // Paginate and fetch movies and series, sorted by the newest first
         const movies = await Movie.find({})
-            .sort({ _id: -1 }) // Sort by most recent
+            .sort({ _id: -1 })
             .limit(limit)
-            .skip((page - 1) * limit); // Skip previous pages
+            .skip((page - 1) * limit);
 
         const series = await Series.find({})
-            .sort({ _id: -1 }) // Sort by most recent
+            .sort({ _id: -1 })
             .limit(limit)
-            .skip((page - 1) * limit); // Skip previous pages
+            .skip((page - 1) * limit);
+
+        console.log("Fetched Movies: ", movies);
+        console.log("Fetched Series: ", series);
 
         const totalMoviesCount = await Movie.countDocuments({});
         const totalSeriesCount = await Series.countDocuments({});
 
-        // Calculate the total number of pages (ensuring pagination logic works)
         const totalPages = Math.ceil(
             Math.max(totalMoviesCount, totalSeriesCount) / limit
         );
 
-        // Format the list for the current page
+        // Format the list and generate pagination buttons
         const content = formatList(movies, series, page, limit);
-
-        // Generate the pagination buttons for the current page
         const paginationButtons = generatePaginationButtons(page, totalPages);
 
-        // Edit the existing message to update the list with pagination
         await ctx.editMessageText(content, {
             parse_mode: "HTML",
             reply_markup: {
