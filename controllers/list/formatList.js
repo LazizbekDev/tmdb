@@ -45,9 +45,15 @@ export default function formatList(movies, series, page, limit) {
     return `${movieList}\n\n${seriesList}`;
 }
 
-export const generatePaginationButtons = (currentPage, totalPages, specific) => {
+export const generatePaginationButtons = (
+    currentPage,
+    totalPages,
+    specific
+) => {
     const buttons = [];
+    const maxButtons = 7; // Limit the number of buttons to 7
 
+    // Add the "Previous" button if not on the first page
     if (currentPage > 1) {
         buttons.push({
             text: "⬅️",
@@ -55,23 +61,39 @@ export const generatePaginationButtons = (currentPage, totalPages, specific) => 
         });
     }
 
-    for (let i = 1; i <= totalPages; i++) {
-        if (i === currentPage) {
-            // Don't add a button for the current page
-            continue;
-        } else if (
-            i <= 2 ||
-            i >= totalPages - 1 ||
-            (i >= currentPage - 1 && i <= currentPage + 1)
-        ) {
-            buttons.push({ text: `${i}`, callback_data: `list_page_${i}` });
+    // Calculate range of pages to show
+    let start = 1;
+    let end = totalPages;
+
+    // Ensure there's at least some space around the current page
+    if (totalPages > maxButtons) {
+        if (currentPage <= 4) {
+            end = Math.min(maxButtons, totalPages); // Show first 7 pages if on the start
+        } else if (currentPage >= totalPages - 3) {
+            start = totalPages - maxButtons + 1; // Show last 7 pages if near the end
+        } else {
+            start = currentPage - 3; // Show a range of 7 pages around the current page
+            end = currentPage + 3;
         }
     }
 
+    // Add the page number buttons
+    for (let i = start; i <= end; i++) {
+        if (i === currentPage) {
+            // Skip the current page
+            continue;
+        }
+        buttons.push({
+            text: `${i}`,
+            callback_data: `list_page_${i}${specific}`,
+        });
+    }
+
+    // Add the "Next" button if not on the last page
     if (currentPage < totalPages) {
         buttons.push({
             text: "➡️",
-            callback_data: `list_page_${currentPage + 1}`,
+            callback_data: `list_page_${currentPage + 1}${specific}`,
         });
     }
 

@@ -6,6 +6,17 @@ export default async function search(ctx) {
     if (!query) return;
 
     try {
+        const getThumbnailUrl = async (thumbFileId) => {
+            const response = await fetch(
+                `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getFile?file_id=${thumbFileId}`
+            );
+            const data = await response.json();
+            if (data.ok) {
+                return `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${data.result.file_path}`;
+            }
+            return "https://example.com/default_thumbnail.jpg"; // Fallback thumbnail
+        };
+
         const [movies, seriesList] = await Promise.all([
             Movie.find({
                 $or: [
@@ -23,27 +34,26 @@ export default async function search(ctx) {
 
         const combinedResults = [
             ...movies.map((movie) => ({
-                type: "article",
+                type: "video",
                 id: `movie_${movie._id.toString()}`,
                 title: `🎞 Movie: ${movie.name}`,
-                input_message_content: {
-                    message_text: `
-🎞 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'><b>${
-                        movie.name
-                    }</b></a>
+                description: movie.caption,
+                video_file_id: movie.teaser,
+                mime_type: "video/mp4",
+                caption: `
+<b>${movie.name}</b>
 
 <i>${movie.caption}</i>
-
-▪️Size: ${movie.size}
-▪️Running time: ${movie.duration}
-
-${movie.keywords.join(",")}
 `,
-                    parse_mode: "HTML",
-                },
-                description: `Movie: ${movie.name}`,
+                parse_mode: "HTML",
                 reply_markup: {
                     inline_keyboard: [
+                        [
+                            {
+                                text: "Watch Now",
+                                url: `https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}`,
+                            },
+                        ],
                         [
                             {
                                 text: "Search",
@@ -54,24 +64,26 @@ ${movie.keywords.join(",")}
                 },
             })),
             ...seriesList.map((series) => ({
-                type: "article",
+                type: "video",
                 id: `series_${series._id.toString()}`,
                 title: `📺 Series: ${series.name}`,
-                input_message_content: {
-                    message_text: `
- 📺 <a href='https://t.me/${process.env.BOT_USERNAME}?start=${series._id}'><b>${
-                        series.name
-                    }</b></a>
+                description: series.caption, // Appears in inline search results
+                video_file_id: series.teaser, // Assuming 'teaser' stores the trailer's file ID
+                mime_type: "video/mp4",
+                caption: `
+<b>${series.name}</b>
 
 <i>${series.caption}</i>
-
-${series.keywords.join(",")}
 `,
-                    parse_mode: "HTML",
-                },
-                description: `Series: ${series.name}`,
+                parse_mode: "HTML",
                 reply_markup: {
                     inline_keyboard: [
+                        [
+                            {
+                                text: "Watch Now",
+                                url: `https://t.me/${process.env.BOT_USERNAME}?start=${series._id}`,
+                            },
+                        ],
                         [
                             {
                                 text: "Search",
@@ -81,6 +93,7 @@ ${series.keywords.join(",")}
                     ],
                 },
             })),
+        
         ];
 
         // If no results, add a "request movie" suggestion

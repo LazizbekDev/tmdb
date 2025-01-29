@@ -19,16 +19,20 @@ export default function actions(bot) {
         const page = 1; // Start at the first page by default
         const limit = 10; // Show 10 movies/series per page
         const movies = await Movie.find({})
+            .sort({ _id: -1 })
             .limit(limit)
             .skip((page - 1) * limit);
         const series = await Series.find({})
+            .sort({ _id: -1 })
             .limit(limit)
             .skip((page - 1) * limit);
 
         const moviesCount = await Movie.countDocuments({});
         const seriesCount = await Series.countDocuments({});
-        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
-        
+        const totalPages = Math.ceil(
+            Math.max(moviesCount, seriesCount) / limit
+        );
+
         // Show total count header only on the first page
         let header = "";
         if (page === 1) {
@@ -70,7 +74,9 @@ export default function actions(bot) {
             const query = callbackData.replace("request_", "");
 
             // Respond to the user
-            await ctx.answerCbQuery(`✅ Your request for "${query}" has been submitted successfully!`); // Acknowledge the callback query to Telegram
+            await ctx.answerCbQuery(
+                `✅ Your request for "${query}" has been submitted successfully!`
+            ); // Acknowledge the callback query to Telegram
             // await ctx.reply(
             //     `✅ Your request for "${query}" has been submitted successfully!`
             // );
@@ -82,11 +88,9 @@ export default function actions(bot) {
 ▪️ <b>From User:</b> ${ctx.from.first_name} (@${ctx.from.username})
 ▪️ <b>User ID:</b> ${ctx.from.id}
 `;
-            await ctx.telegram.sendMessage(
-                process.env.ADMIN_ID,
-                adminMessage,
-                { parse_mode: "HTML" }
-            );
+            await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {
+                parse_mode: "HTML",
+            });
         }
     });
 
