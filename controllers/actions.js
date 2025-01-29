@@ -16,14 +16,14 @@ const userState = {};
 
 export default function actions(bot) {
     bot.command("list", async (ctx) => {
-        const page = 1; // Start at the first page by default
+        const page = parseInt(ctx.match?.[1] || 1); // Get the page from the callback data, default to 1
         const limit = 10; // Show 10 movies/series per page
         const movies = await Movie.find({})
-            .sort({ _id: -1 })
+            .sort({ _id: -1 }) // Sort by newest first
             .limit(limit)
             .skip((page - 1) * limit);
         const series = await Series.find({})
-            .sort({ _id: -1 })
+            .sort({ _id: -1 }) // Sort by newest first
             .limit(limit)
             .skip((page - 1) * limit);
 
@@ -40,7 +40,11 @@ export default function actions(bot) {
         }
 
         const content = header + formatList(movies, series, page, limit);
-        const paginationButtons = generatePaginationButtons(page, totalPages);
+        const paginationButtons = generatePaginationButtons(
+            page,
+            totalPages,
+            `&specific=${page}`
+        );
 
         await ctx.reply(content, {
             parse_mode: "HTML",
