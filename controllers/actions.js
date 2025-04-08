@@ -11,53 +11,57 @@ import {
     handleTextInput,
     handleVideoOrDocument,
 } from "./handler.js";
+import MovieModel from "../model/MovieModel.js";
+import { adminNotifier } from "../utilities/admin_notifier.js";
 
 const userState = {};
 
 export default function actions(bot) {
     bot.command("list", async (ctx) => {
-        const page = parseInt(ctx.match?.[1] || 1); // Get the page from the callback data, default to 1
-        const limit = 10; // Show 10 movies/series per page
+        try {
+            const page = parseInt(ctx.match?.[1] || 1); // Get the page from the callback data, default to 1
+            const limit = 10; // Show 10 movies/series per page
 
-        // Fetch the movies and series from the database with pagination
-        const movies = await Movie.find({})
-            .sort({ _id: -1 })
-            .skip((page - 1) * limit) // Skip the appropriate number of movies
-            .limit(limit); // Limit the results to `limit`
+            const movies = await Movie.find({})
+                .sort({ _id: -1 })
+                .skip((page - 1) * limit) // Skip the appropriate number of movies
+                .limit(limit); // Limit the results to `limit`
 
-        const series = await Series.find({})
-            .sort({ _id: -1 })
-            .skip((page - 1) * limit) // Skip the appropriate number of series
-            .limit(limit); // Limit the results to `limit`
+            const series = await Series.find({})
+                .sort({ _id: -1 })
+                .skip((page - 1) * limit) // Skip the appropriate number of series
+                .limit(limit); // Limit the results to `limit`
 
-        // Get the total counts of movies and series for pagination calculations
-        const moviesCount = await Movie.countDocuments({});
-        const seriesCount = await Series.countDocuments({});
+            const moviesCount = await Movie.countDocuments({});
+            const seriesCount = await Series.countDocuments({});
 
-        // Calculate total number of pages for pagination (based on max of movies or series)
-        const totalPages = Math.ceil(
-            Math.max(moviesCount, seriesCount) / limit
-        );
+            const totalPages = Math.ceil(
+                Math.max(moviesCount, seriesCount) / limit
+            );
 
-        // Generate the header for the first page
-        let header = "";
-        if (page === 1) {
-            header = generateHeader(moviesCount, seriesCount); // Call your header generator function
+            let header = "";
+            if (page === 1) {
+                header = generateHeader(moviesCount, seriesCount); // Call your header generator function
+            }
+
+            const content = header + formatList(movies, series, page, limit);
+
+            const paginationButtons = generatePaginationButtons(
+                page,
+                totalPages
+            );
+
+            await ctx.reply(content, {
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: paginationButtons,
+                },
+            });
+        } catch (error) {
+            console.error("Error in /list command:", error);
+            await ctx.reply("An error occurred while processing your request.");
+            await adminNotifier(bot, error, ctx, "List command error");
         }
-
-        // Format the movies and series list
-        const content = header + formatList(movies, series, page, limit);
-
-        // Generate pagination buttons
-        const paginationButtons = generatePaginationButtons(page, totalPages);
-
-        // Send the message with content and pagination buttons
-        await ctx.reply(content, {
-            parse_mode: "HTML",
-            reply_markup: {
-                inline_keyboard: paginationButtons,
-            },
-        });
     });
 
     bot.on("inline_query", search);
@@ -66,55 +70,123 @@ export default function actions(bot) {
 
     // Handle video and document messages
     bot.on(["video", "document"], async (ctx) => {
-        if (ctx.message.via_bot) return;
-        await handleVideoOrDocument(ctx, userState);
+        try {
+            if (ctx.message.via_bot) return;
+            await handleVideoOrDocument(ctx, userState);
+        } catch (error) {
+            console.error("Error handling video or document:", error);
+            await ctx.reply("An error occurred while processing your request.");
+            await adminNotifier(
+                bot,
+                error,
+                ctx,
+                "Video/Document handling error"
+            );
+        }
     });
 
     bot.on("text", async (ctx) => {
-        if (ctx.message.via_bot) return;
-        await handleTextInput(ctx, userState);
+        try {
+            if (ctx.message.via_bot) return;
+            await handleTextInput(ctx, userState);
+        } catch (error) {
+            console.error("Error handling text input:", error);
+            await ctx.reply("An error occurred while processing your request.");
+            await adminNotifier(bot, error, ctx, "Text input handling error");
+        }
     });
 
     bot.on("callback_query", async (ctx) => {
         const callbackData = ctx.callbackQuery.data;
 
-        // Check if the callback data matches the pattern
-        if (callbackData.startsWith("request_")) {
-            // Extract the query part from the callback data
-            const query = callbackData.replace("request_", "");
+        try {
+            if (callbackData.startsWith("request_")) {
+                // Extract the query part from the callback data
+                const query = callbackData.replace("request_", "");
 
-            // Respond to the user
-            await ctx.answerCbQuery(
-                `✅ Your request for "${query}" has been submitted successfully!`
-            ); // Acknowledge the callback query to Telegram
-            // await ctx.reply(
-            //     `✅ Your request for "${query}" has been submitted successfully!`
-            // );
+                // Respond to the user
+                await ctx.answerCbQuery(
+                    `✅ Your request for "${query}" has been submitted successfully!`
+                ); // Acknowledge the callback query to Telegram
+                // await ctx.reply(
+                //     `✅ Your request for "${query}" has been submitted successfully!`
+                // );
 
-            // Optionally, send the request to an admin or log it
-            const adminMessage = `
-🎥 <b>New Movie/Series Request</b>
-▪️ <b>Requested Item:</b> ${query}
-▪️ <b>From User:</b> ${ctx.from.first_name} (@${ctx.from.username})
-▪️ <b>User ID:</b> ${ctx.from.id}
-`;
-            await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {
-                parse_mode: "HTML",
-            });
+                // Optionally, send the request to an admin or log it
+                const adminMessage = `
+    🎥 <b>New Movie/Series Request</b>
+    ▪️ <b>Requested Item:</b> ${query}
+    ▪️ <b>From User:</b> ${ctx.from.first_name} (@${ctx.from.username})
+    ▪️ <b>User ID:</b> ${ctx.from.id}
+    `;
+                await ctx.telegram.sendMessage(
+                    process.env.ADMIN_ID,
+                    adminMessage,
+                    {
+                        parse_mode: "HTML",
+                    }
+                );
+            } else if (callbackData.startsWith("show_teaser_")) {
+                const movieId = callbackData.split("show_teaser_")[1];
+                const movie = await MovieModel.findById(movieId);
+                if (!movie) return;
+
+                await bot.telegram.editMessageMedia(
+                    ctx.from.id,
+                    ctx.callbackQuery.message.message_id,
+                    undefined,
+                    {
+                        type: "video",
+                        media: movie.teaser,
+                        caption: `🎞 <b>${movie.name}</b>\n\n${
+                            movie.teaserCaption || "Here's the teaser!"
+                        }`,
+                        parse_mode: "HTML",
+                    },
+                    {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "🍿 Watch Movie",
+                                        url: `https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}`,
+                                    },
+                                ],
+                            ],
+                        },
+                    }
+                );
+                await ctx.answerCbQuery();
+            }
+        } catch (error) {
+            console.error("Error handling callback query:", error);
+            await ctx.reply("An error occurred while processing your request.");
+            await adminNotifier(
+                bot,
+                error,
+                ctx,
+                "Callback query handling error"
+            );
         }
     });
 
     bot.on("my_chat_member", async (ctx) => {
-        const status = ctx.update.my_chat_member.new_chat_member.status;
-        const userId = ctx.update.my_chat_member.from.id;
-
-        if (status === "kicked" || status === "left") {
-            // User blocked or deleted the bot
-            await User.findOneAndUpdate(
-                { telegramId: userId },
-                { $set: { leftTheBot: true } }
-            );
-            console.log(`User ${userId} has blocked or deleted the bot.`);
+        try {
+            const status = ctx.update.my_chat_member.new_chat_member.status;
+            const userId = ctx.update.my_chat_member.from.id;
+    
+            if (status === "kicked" || status === "left") {
+                // User blocked or deleted the bot
+                await User.findOneAndUpdate(
+                    { telegramId: userId },
+                    { $set: { leftTheBot: true } }
+                );
+                console.log(`User ${userId} has blocked or deleted the bot.`);
+            }
+        } catch (error) {
+            console.error("Error in my_chat_member handler:", error);
+            await ctx.reply("An error occurred while processing your request.");
+            await adminNotifier(bot, error, ctx, "my_chat_member error");
         }
     });
 }

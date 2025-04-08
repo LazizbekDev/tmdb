@@ -31,66 +31,28 @@ export async function handleStart(ctx) {
     // Check if the user already exists in the database
     let user = await User.findOne({ telegramId: userId });
 
-    // If the user doesn't exist, create a new one
-    if (!user) {
-        user = new User({ telegramId: userId });
-        await user.save();
-        await ctx.replyWithHTML(
-            `
-👋 <b>Welcome to the Movie Bot!</b>
-
-Here's how you can use this bot:
-
-1️⃣ Use the <b>Search</b> feature to find movies or series. 
-   - Type <code>@${process.env.BOT_USERNAME}</code> and movie or series name in any chat, and results will appear instantly.
-
-2️⃣ Share your favorites!
-   - Search for a movie/series and send it to friends or groups directly using inline search.
-
-3️⃣ Use Deep Links:
-   - Click a movie link (e.g., <code>https://t.me/${process.env.BOT_USERNAME}?start=movieID</code>) to access specific content.
-
-4️⃣ Request Content:
-   - Can't find something? Use the inline search feature to request a movie or series.
-
-Enjoy unlimited entertainment for free! 🎥🍿
-🔔 To get the latest updates and full access, consider joining our channel:
-👉 <a href="https://t.me/${process.env.CHANNEL_USERNAME}">Join Now</a>
-
-After joining, click the "Check Membership" button to unlock full access.
-            `,
-            {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: "Check Membership",
-                                callback_data: "check_membership",
-                            },
-                        ],
-                    ],
-                },
-            }
-        );
-    }
-
     const limit = 1;
 
     // If the user is not a member and has reached their limit, prompt them to join the channel
     if (!isMember && user.accessCount >= limit) {
         return ctx.reply(
-            `You have reached your free access limit. Please join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to continue using the bot.`,
+            `🎬 You can only get a movie after joining our channel. You’ve reached your free access limit.\n\nPlease join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to continue enjoying the bot!`,
             {
                 parse_mode: "HTML",
                 reply_markup: {
                     inline_keyboard: [
                         [
                             {
-                                text: "Join",
+                                text: "Join Now",
                                 url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
                             },
                         ],
-                        [{ text: "Check", callback_data: "check_membership" }],
+                        [
+                            {
+                                text: "Check Membership",
+                                callback_data: "check_membership",
+                            },
+                        ],
                     ],
                 },
             }
@@ -270,6 +232,7 @@ After joining, click the "Check Membership" button to unlock full access.
         } catch (error) {
             console.error("Error fetching movie or series:", error);
             return ctx.reply("There was an error processing your request.");
+            await adminNotifier(bot, error, ctx, "Start command error");
         }
     } else {
         startMessage(ctx); // Or your default start message
@@ -286,43 +249,61 @@ export const handleActionButtons = (bot, userState) => {
     });
 
     bot.action(/list_page_(\d+)/, async (ctx) => {
-        const page = parseInt(ctx.match[1], 10); // Get the page number from the callback data
-        const limit = 10; // Show 10 movies/series per page
+        try {
+            const page = parseInt(ctx.match[1], 10); // Get the page number from the callback data
+            const limit = 10;
 
-        // Paginate and fetch movies and series, sorted by the newest first
-        const movies = await Movie.find({})
-            .sort({ _id: -1 })
-            .limit(limit)
-            .skip((page - 1) * limit);
+            const movies = await Movie.find({})
+                .sort({ _id: -1 })
+                .limit(limit)
+                .skip((page - 1) * limit);
 
-        const series = await Series.find({})
-            .sort({ _id: -1 })
-            .limit(limit)
-            .skip((page - 1) * limit);
+            const series = await Series.find({})
+                .sort({ _id: -1 })
+                .limit(limit)
+                .skip((page - 1) * limit);
 
-        const totalMoviesCount = await Movie.countDocuments({});
-        const totalSeriesCount = await Series.countDocuments({});
+            const totalMoviesCount = await Movie.countDocuments({});
+            const totalSeriesCount = await Series.countDocuments({});
 
-        const totalPages = Math.ceil(
-            Math.max(totalMoviesCount, totalSeriesCount) / limit
-        );
+            const totalPages = Math.ceil(
+                Math.max(totalMoviesCount, totalSeriesCount) / limit
+            );
 
-        // Format the list and generate pagination buttons
-        const content = formatList(movies, series, page, limit);
-        const paginationButtons = generatePaginationButtons(page, totalPages);
+            // Format the list and generate pagination buttons
+            const content = formatList(movies, series, page, limit);
+            const paginationButtons = generatePaginationButtons(
+                page,
+                totalPages
+            );
 
-        await ctx.editMessageText(content, {
-            parse_mode: "HTML",
-            reply_markup: {
-                inline_keyboard: paginationButtons,
-            },
-        });
+            await ctx.editMessageText(content, {
+                parse_mode: "HTML",
+                reply_markup: {
+                    inline_keyboard: paginationButtons,
+                },
+            });
+        } catch (error) {
+            console.error("Error in pagination:", error);
+            await ctx.reply("An error occurred while processing your request.");
+            await adminNotifier(bot, error, ctx, "Pagination error");
+        }
     });
 
     bot.action("send_movie_request", async (ctx) => {
-        await ctx.answerCbQuery("We will post it to channel");
-        await ctx.reply("Send name of the film name that you want to watch");
-        userState[ctx.from.id] = { step: "awaitingRequestName" };
+        try {
+            await ctx.answerCbQuery("We will post it to channel");
+            await ctx.reply(
+                "Send name of the film name that you want to watch"
+            );
+            userState[ctx.from.id] = { step: "awaitingRequestName" };
+        } catch (error) {
+            console.error("Error in send_movie_request action:", error);
+            await ctx.reply(
+                "An error occurred while processing your request. Please try again."
+            );
+            await adminNotifier(bot, error, ctx, "Send movie request error");
+        }
     });
 
     bot.action("add_series", async (ctx) => {
@@ -341,114 +322,83 @@ export const handleActionButtons = (bot, userState) => {
     });
 
     bot.action("check_membership", async (ctx) => {
-        const userId = ctx.from.id;
-        const isAdmin =
-            ctx.message?.from?.username?.toLowerCase() === process.env.ADMIN;
-        const isMember = await checkUserMembership(userId);
-        if (isMember) {
-            await User.findOneAndUpdate(
-                { telegramId: userId }, // Filter: Find the user by telegramId
-                { $set: { isSubscribed: true } }, // Update: Set isSubscribed to true
-                { new: true } // Options: Return the updated document
+        try {
+            const userId = ctx.from.id;
+            const isAdmin =
+                ctx.message?.from?.username?.toLowerCase() ===
+                process.env.ADMIN;
+            const isMember = await checkUserMembership(userId);
+            if (isMember) {
+                await User.findOneAndUpdate(
+                    { telegramId: userId }, // Filter: Find the user by telegramId
+                    { $set: { isSubscribed: true } }, // Update: Set isSubscribed to true
+                    { new: true } // Options: Return the updated document
+                );
+                await ctx.editMessageText(
+                    "You are now verified! Use the buttons below:",
+                    {
+                        parse_mode: "HTML",
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "Search",
+                                        switch_inline_query_current_chat: "",
+                                    },
+                                ],
+                                [
+                                    {
+                                        text: isAdmin
+                                            ? "Add new"
+                                            : "Send feedback",
+                                        callback_data: isAdmin
+                                            ? "add"
+                                            : "feedback",
+                                    },
+                                ],
+                                [
+                                    {
+                                        text: "🎬 Send Movie Request",
+                                        callback_data: "send_movie_request",
+                                    },
+                                ],
+                            ],
+                        },
+                    }
+                );
+            } else {
+                await ctx.answerCbQuery(
+                    "Please join the channel and try again!",
+                    {
+                        show_alert: true,
+                    }
+                );
+            }
+        } catch (error) {
+            console.error("Error checking membership:", error);
+            await ctx.reply(
+                "An error occurred while checking your membership status. Please try again."
             );
-            await ctx.editMessageText(
-                "You are now verified! Use the buttons below:",
-                {
-                    parse_mode: "HTML",
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                {
-                                    text: "Search",
-                                    switch_inline_query_current_chat: "",
-                                },
-                            ],
-                            [
-                                {
-                                    text: isAdmin ? "Add new" : "Send feedback",
-                                    callback_data: isAdmin ? "add" : "feedback",
-                                },
-                            ],
-                            [
-                                {
-                                    text: "🎬 Send Movie Request",
-                                    callback_data: "send_movie_request",
-                                },
-                            ],
-                        ],
-                    },
-                }
-            );
-        } else {
-            await ctx.answerCbQuery("Please join the channel and try again!", {
-                show_alert: true,
-            });
+            await adminNotifier(bot, error, ctx, "Membership check error");
         }
     });
 
     bot.action("feedback", async (ctx) => {
-        userState[ctx.from.id] = { step: "awaitingFeedback" };
-        await ctx.answerCbQuery("You can send your feedback to admin");
-        await ctx.reply("Please send your feedback.");
+        try {
+            userState[ctx.from.id] = { step: "awaitingFeedback" };
+            await ctx.answerCbQuery("You can send your feedback to admin");
+            await ctx.reply("Please send your feedback.");
+        } catch (error) {
+            console.error("Error in feedback action:", error);
+            await ctx.reply(
+                "An error occurred while processing your feedback. Please try again."
+            );
+            await adminNotifier(bot, error, ctx, "Feedback action error");
+        }
     });
 };
 
-export const handleTextInput = async (ctx, userState) => {
-    const userId = ctx.from.id;
-    const messageText = ctx.message.text;
-
-    if (userState[userId]) {
-        switch (userState[userId].step) {
-            case "awaitingSeriesForNewSeason":
-                await findCurrentSeason(ctx, userState, userId);
-                break;
-            case "awaitingSeriesDetails":
-                await title(ctx, userState, userId);
-                break;
-            case "awaitingDetails":
-                await info(ctx, userState);
-                break;
-            case "awaitingFeedback":
-                await toAdmin(ctx);
-                break;
-            case "awaitingSeriesFiles":
-                if (messageText === "Done") {
-                    await saveSeries(ctx, userState, userId);
-                }
-
-                break;
-            case "awaitingNewSeasonDetails":
-                3;
-                if (messageText === "Done")
-                    await saveNewSeason(ctx, userState, userId);
-                break;
-            case "awaitingRequestName":
-                // Store the request in the database
-                await UserSubmission.create({
-                    userId: userId,
-                    name: ctx.from.first_name,
-                    request: messageText,
-                    timestamp: new Date(),
-                });
-
-                await ctx.telegram.sendMessage(
-                    process.env.ADMIN_ID,
-                    `👤from ${
-                        ctx.from.username
-                            ? "@" + ctx.from.username
-                            : "User ID: " +
-                              `<code>${userId} - ${ctx.from?.first_name}</code>`
-                    }\n\n📝<i>${messageText}</i>\n\nℹ️ to reply: <code>/reply ${userId} Thanks for your feedback ☺️</code>`,
-                    {
-                        parse_mode: "HTML",
-                    }
-                );
-
-                ctx.reply("Thank you! Your request has been submitted.");
-                break;
-        }
-    }
-
+const searchAndReply = async (ctx, messageText) => {
     try {
         const page = 1;
         const [movies, seriesList] = await Promise.all([
@@ -466,26 +416,85 @@ export const handleTextInput = async (ctx, userState) => {
             }),
         ]);
 
-        const moviesCount = movies.length;
-        const seriesCount = seriesList.length;
-
-        // Calculate total pages for pagination
-        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / 30);
+        const totalPages = Math.ceil(
+            Math.max(movies.length, seriesList.length) / 30
+        );
+        const header = generateHeader(movies.length, seriesList.length);
         const content = formatList(movies, seriesList, page, 30);
-        const paginationButtons = generatePaginationButtons(page, totalPages);
+        const buttons = generatePaginationButtons(page, totalPages);
 
-        // Generate the header with counts
-        const header = generateHeader(moviesCount, seriesCount);
-
-        // Send the formatted list, header, and pagination buttons to the user
         await ctx.replyWithHTML(`${header}${content}`, {
-            reply_markup: {
-                inline_keyboard: paginationButtons,
-            },
+            reply_markup: { inline_keyboard: buttons },
         });
     } catch (error) {
-        console.log(error);
-        await ctx.reply("Something went wrong while processing your request.");
+        console.error("🔍 Search error:", error);
+        await ctx.reply(
+            "Something went wrong while searching. Try again later."
+        );
+        await adminNotifier(bot, error, ctx, "Search error");
+    }
+};
+
+export const handleTextInput = async (ctx, userState) => {
+    const userId = ctx.from.id;
+    const messageText = ctx.message.text;
+
+    if (!userState[userId]) {
+        return await searchAndReply(ctx, messageText); // fallback search
+    }
+
+    try {
+        switch (userState[userId].step) {
+            case "awaitingSeriesForNewSeason":
+                await findCurrentSeason(ctx, userState, userId);
+                break;
+            case "awaitingSeriesDetails":
+                await title(ctx, userState, userId);
+                break;
+            case "awaitingDetails":
+                await info(ctx, userState);
+                break;
+            case "awaitingFeedback":
+                await toAdmin(ctx);
+                delete userState[userId];
+                break;
+            case "awaitingSeriesFiles":
+                if (messageText === "Done") {
+                    await saveSeries(ctx, userState, userId);
+                }
+                break;
+            case "awaitingNewSeasonDetails":
+                if (messageText === "Done") {
+                    await saveNewSeason(ctx, userState, userId);
+                }
+                break;
+            case "awaitingRequestName":
+                await UserSubmission.create({
+                    userId,
+                    name: ctx.from.first_name,
+                    request: messageText,
+                    timestamp: new Date(),
+                });
+
+                await ctx.telegram.sendMessage(
+                    process.env.ADMIN_ID,
+                    `👤from ${
+                        ctx.from.username
+                            ? "@" + ctx.from.username
+                            : `User ID: <code>${userId} - ${ctx.from?.first_name}</code>`
+                    }\n\n📝<i>${messageText}</i>\n\nℹ️ to reply: <code>/reply ${userId} Thanks for your feedback ☺️</code>`,
+                    { parse_mode: "HTML" }
+                );
+
+                await ctx.reply("Thank you! Your request has been submitted.");
+                break;
+        }
+    } catch (error) {
+        console.error("🚨 Error handling text input:", error);
+        await ctx.reply(
+            "Oops! Something went wrong while processing your input."
+        );
+        await adminNotifier(bot, error, ctx, "Text input handling error");
     }
 };
 
@@ -499,7 +508,11 @@ export const handleVideoOrDocument = async (ctx, userState) => {
         return ctx.reply("Please send a valid video file (mp4, mkv, etc.).");
     }
 
-    if (userState[userId]) {
+    if (!userState[userId]) {
+        return ctx.reply("Please start by using the /start command.");
+    }
+
+    try {
         switch (userState[userId].step) {
             case "awaitingSeriesFiles":
                 await episodes(ctx, userState, userId, file);
@@ -517,7 +530,13 @@ export const handleVideoOrDocument = async (ctx, userState) => {
                 await seriesTeaser(ctx, userState, userId, file);
                 break;
             default:
-                await ctx.reply("Please start by using the /start command.");
+                await ctx.reply(
+                    "Unknown step. Please start by using the /start command."
+                );
         }
+    } catch (error) {
+        console.error("Error handling video or document:", error);
+        await ctx.reply("An error occurred while processing your request.");
+        await adminNotifier(bot, error, ctx, "Video/Document handling error");
     }
 };

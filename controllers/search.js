@@ -6,17 +6,6 @@ export default async function search(ctx) {
     if (!query) return;
 
     try {
-        const getThumbnailUrl = async (thumbFileId) => {
-            const response = await fetch(
-                `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getFile?file_id=${thumbFileId}`
-            );
-            const data = await response.json();
-            if (data.ok) {
-                return `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${data.result.file_path}`;
-            }
-            return "https://example.com/default_thumbnail.jpg"; // Fallback thumbnail
-        };
-
         const [movies, seriesList] = await Promise.all([
             Movie.find({
                 $or: [

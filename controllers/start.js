@@ -1,4 +1,3 @@
-import { Markup } from "telegraf";
 import fetch from "node-fetch";
 import User from "../model/User.js";
 
@@ -45,7 +44,8 @@ export const startMessage = async (ctx) => {
         return ctx.reply(
             `<b>👋 Hey ${ctx.message.from.first_name},</b>
 \n
-<i>🔍 Use the search button to quickly find your favorite movies.\n
+<i>🔍 Just type the movie name, and I'll search it for you instantly!\n
+Or, if you prefer, tap the search button below to start looking for movies.\n
 🎥 Want a full list of films? Just hit /list to explore!</i>
 \n
 Enjoy your next favorite watch!🍿`,
@@ -78,7 +78,7 @@ Enjoy your next favorite watch!🍿`,
     } else {
         await ctx.replyWithHTML(
             `
-👋 <b>Welcome to the Movie Bot!</b>
+👋 <b>Hello ${ctx.message.from.first_name}!</b>
 
 Here's how you can use this bot:
 

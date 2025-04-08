@@ -1,11 +1,9 @@
 import Feedback from "../../model/Feedback.js";
-import { createUserLink } from "../start.js";
 
 export default async function toAdmin(ctx) {
     const userId = ctx.from.id;
     const username = ctx.from?.username;
     const message = ctx.message.text;
-    const link = await createUserLink(ctx.from);
 
     // Save feedback to the database
     const feedback = new Feedback({
@@ -33,4 +31,6 @@ export default async function toAdmin(ctx) {
     await ctx.reply(
         "Thank you for your feedback! We'll get back to you shortly."
     );
+            // clear userState after feedback is sent
+    
 }

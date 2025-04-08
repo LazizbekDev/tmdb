@@ -16,6 +16,7 @@ import User from "./model/User.js";
 import { suggestMovie } from "./controllers/suggestion.js";
 import cron from "node-cron";
 import axios from "axios";
+import SuggestionLog from "./model/suggestion_log.js";
 
 config();
 
@@ -30,33 +31,55 @@ connect(process.env.DB)
 const token = process.env.BOT_TOKEN;
 const bot = new Telegraf(token);
 
-// Use the handleStart function for the /start command
 bot.start(handleStart);
 
-// Feedback handling
 replyToUser(bot);
 
-// Load other bot actions
 actions(bot);
 postSubmissionsForVoting(bot);
 
-cron.schedule("0 12 * * 0", async () => {
-    console.log("Running weekly movie suggestion job...");
+cron.schedule("0 12 * * *", async () => {
+    console.log("⏰ Checking if it's time to suggest movies...");
 
     try {
-        const users = await User.find();
-        for (const user of users) {
-            try {
-                await suggestMovie(bot, user.telegramId);
-            } catch (err) {
-                console.error(
-                    `Error suggesting movie to user ${user.telegramId}:`,
-                    err
-                );
-            }
+        let log = await SuggestionLog.findOne();
+
+        const now = new Date();
+
+        if (!log) {
+            log = new SuggestionLog({ lastRun: now });
+            await log.save();
+            console.log("✅ First time setup. Log created.");
+            return;
         }
-    } catch (error) {
-        console.error("Error running weekly suggestion job:", error);
+
+        const threeDays = 3 * 24 * 60 * 60 * 1000;
+        const lastRunDate = new Date(log.lastRun);
+
+        if (now - lastRunDate >= threeDays) {
+            console.log("🎬 Running movie suggestion job...");
+
+            const users = await User.find();
+            if (!users.length) {
+                console.log("No users to suggest movies to.");
+                return;
+            }
+            for (const user of users) {
+                try {
+                    await suggestMovie(bot, user.telegramId);
+                } catch (err) {
+                    console.error(`❌ Error for ${user.telegramId}:`, err);
+                }
+            }
+
+            log.lastRun = now;
+            await log.save();
+            console.log("✅ Suggestions sent and log updated.");
+        } else {
+            console.log("⏳ Less than 3 days since last run. Skipping...");
+        }
+    } catch (err) {
+        console.error("❌ Cron job failed:", err);
     }
 });
 
@@ -64,22 +87,34 @@ const app = express();
 
 // Health check route to keep bot alive
 app.get("/", async (req, res) => {
-    const userCount = await User.countDocuments();
-
-    res.json({
-        status: "success",
-        message: "Bot is running!",
-        timestamp: new Date().toISOString(),
-        uptime: formatUptime(process.uptime()), // Converts uptime to human-readable format
-        memoryUsage: formatMemoryUsage(process.memoryUsage().heapUsed), // Converts bytes to MB/GB
-        cpuUsage: formatCpuUsage(process.cpuUsage()), // Formats CPU usage
-        systemLoad: getSystemLoad(), // System load averages (1m, 5m, 15m)
-        usersCount: userCount,
-    });
+    try {
+        const userCount = await User.countDocuments();
+        res.json({
+            status: "success",
+            message: "Bot is running!",
+            timestamp: new Date().toISOString(),
+            uptime: formatUptime(process.uptime()),
+            memoryUsage: formatMemoryUsage(process.memoryUsage().heapUsed),
+            cpuUsage: formatCpuUsage(process.cpuUsage()),
+            systemLoad: getSystemLoad(),
+            usersCount: userCount,
+        });
+    } catch (err) {
+        res.status(500).json({
+            status: "error",
+            message: "Something went wrong",
+            error: err.message,
+        });
+    }
 });
 
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("*/4 * * * *", async () => {
     try {
+        if (!process.env.URL) {
+            console.warn("⚠️ No URL set in .env file for health check");
+
+            return;
+        }
         const response = await axios.get(process.env.URL);
         console.log(
             `[${new Date().toLocaleString()}] Health Check:`,
