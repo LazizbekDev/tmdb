@@ -33,30 +33,47 @@ export async function handleStart(ctx) {
 
     const limit = 1;
 
-    // If the user is not a member and has reached their limit, prompt them to join the channel
-    if (!isMember && user.accessCount >= limit) {
-        return ctx.reply(
-            `🎬 You can only get a movie after joining our channel. You’ve reached your free access limit.\n\nPlease join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to continue enjoying the bot!`,
-            {
-                parse_mode: "HTML",
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: "Join Now",
-                                url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
-                            },
+    try {
+        if (!user) {
+            user = new User({
+                telegramId: userId,
+                firstName: userFirstName,
+                username: userUsername,
+                accessCount: 0,
+                createdAt: new Date(),
+            });
+            await user.save();
+        }
+
+        // If the user is not a member and has reached their limit, prompt them to join the channel
+        if (!isMember && user.accessCount >= limit) {
+            return ctx.reply(
+                `🎬 You can only get a movie after joining our channel. You’ve reached your free access limit.\n\nPlease join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to continue enjoying the bot!`,
+                {
+                    parse_mode: "HTML",
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "Join Now",
+                                    url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
+                                },
+                            ],
+                            [
+                                {
+                                    text: "Check Membership",
+                                    callback_data: "check_membership",
+                                },
+                            ],
                         ],
-                        [
-                            {
-                                text: "Check Membership",
-                                callback_data: "check_membership",
-                            },
-                        ],
-                    ],
-                },
-            }
-        );
+                    },
+                }
+            );
+        }
+    } catch (error) {
+        console.error("❌ Error in handleStart:", err);
+        await adminNotifier(bot, error, ctx, "Error in handleStart function");
+        return ctx.reply("⚠️ Something went wrong. Please try again later.");
     }
 
     // If payload exists, try to fetch movie or series by ID
