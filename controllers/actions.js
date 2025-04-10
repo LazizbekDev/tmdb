@@ -64,6 +64,16 @@ export default function actions(bot) {
         }
     });
 
+    bot.command("/suggest", async (ctx) => {
+        try {
+            await suggestMovie(bot, ctx.from.id);
+        } catch (error) {
+            console.error("Error in /suggest command:", error);
+            await ctx.reply("An error occurred while processing your request.");
+            await adminNotifier(bot, error, ctx, "Suggest command error");
+        }
+    });
+
     bot.on("inline_query", search);
 
     handleActionButtons(bot, userState);
@@ -174,7 +184,7 @@ export default function actions(bot) {
         try {
             const status = ctx.update.my_chat_member.new_chat_member.status;
             const userId = ctx.update.my_chat_member.from.id;
-    
+
             if (status === "kicked" || status === "left") {
                 // User blocked or deleted the bot
                 await User.findOneAndUpdate(
