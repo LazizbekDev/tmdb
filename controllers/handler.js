@@ -71,7 +71,7 @@ export async function handleStart(ctx) {
             );
         }
     } catch (error) {
-        console.error("❌ Error in handleStart:", err);
+        console.error("❌ Error in handleStart:", error);
         await adminNotifier(bot, error, ctx, "Error in handleStart function");
         return ctx.reply("⚠️ Something went wrong. Please try again later.");
     }
