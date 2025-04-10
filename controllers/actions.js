@@ -64,7 +64,7 @@ export default function actions(bot) {
         }
     });
 
-    bot.command("/suggest", async (ctx) => {
+    bot.command("suggest", async (ctx) => {
         try {
             await suggestMovie(bot, ctx.from.id);
         } catch (error) {
