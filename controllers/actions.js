@@ -13,6 +13,7 @@ import {
 } from "./handler.js";
 import MovieModel from "../model/MovieModel.js";
 import { adminNotifier } from "../utilities/admin_notifier.js";
+import { suggestMovie } from "./suggestion.js";
 
 const userState = {};
 
