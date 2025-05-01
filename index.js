@@ -108,7 +108,7 @@ app.get("/", async (req, res) => {
     }
 });
 
-cron.schedule("*/4 * * * *", async () => {
+cron.schedule("*/7 * * * *", async () => {
     try {
         if (!process.env.URL) {
             console.warn("⚠️ No URL set in .env file for health check");
