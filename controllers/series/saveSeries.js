@@ -22,14 +22,17 @@ export default async function saveSeries(ctx, userState, userId) {
 // Send to the main channel
 await ctx.telegram.sendVideo(process.env.ID, newSeries.teaser, {
     caption: `
-🎞️ <b>${newSeries.name}</b>
-
-👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${newSeries._id}">Tap to watch</a>
+🎞️ <b><a href="https://t.me/${process.env.BOT_USERNAME}?start=${newSeries._id}">${newSeries.name}</a></b>
 
 <i>${newSeries.caption}</i>
 
-${newSeries.keywords?.join(",")}
-    `,
+📀 <b>Season ${newSeries.series[0].seasonNumber}</b>
+🎬 <b>Total Episodes:</b> ${newSeries.series?.[0]?.episodes?.length || 0}
+
+<pre>${newSeries.series[0].episodes.length}</pre>
+
+<blockquote>${newSeries.keywords?.join(",")}</blockquote>
+`,
     parse_mode: "HTML",
 });
 
