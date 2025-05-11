@@ -1,24 +1,8 @@
 import MovieModel from "../model/MovieModel.js";
+import SeriesModel from "../model/SeriesModel.js";
 import User from "../model/User.js";
-
-// Hashtaglardan toza genre'larni chiqarish
-function extractGenres(keywords) {
-  const tags = [];
-
-  for (const kw of keywords || []) {
-    const matches = kw.match(/#[^\s#]+/g); // #tag larni topadi
-    if (matches) {
-      for (const tag of matches) {
-        const clean = tag.replace("#", "").trim();
-        if (clean && !tags.includes(clean)) {
-          tags.push(clean);
-        }
-      }
-    }
-  }
-
-  return tags;
-}
+import { adminNotifier } from "../utilities/admin_notifier.js";
+import { extractGenres, getRandomContent } from "../utilities/utilities.js";
 
 export const suggestMovie = async (bot, userId) => {
   try {
@@ -30,7 +14,6 @@ export const suggestMovie = async (bot, userId) => {
 
     const accessedMovies = await MovieModel.find({ _id: { $in: accessedIds } });
 
-    // Keyword statistikasi
     const keywordCount = {};
 
     for (const movie of accessedMovies) {
@@ -40,30 +23,52 @@ export const suggestMovie = async (bot, userId) => {
       }
     }
 
-    // Eng ko‘p uchragan taglar bo‘yicha saralash
     const sortedGenres = Object.entries(keywordCount)
       .sort((a, b) => b[1] - a[1])
       .map(([genre]) => genre);
 
-    if (sortedGenres.length === 0) return;
-    console.log("Sorted Genres:", sortedGenres);
+    let content = null;
 
-    // Tavsiya qilinmagan, ko‘rilmagan, lekin shu taglardan birortasi bor filmlarni topamiz
-    const movie = await MovieModel.findOne({
-      _id: { $nin: [...suggestedIds, ...accessedIds] },
-      keywords: {
-        $elemMatch: {
-          $regex: new RegExp(`#(${sortedGenres.join("|")})`, "i"),
-        },
-      },
-    }).sort({ views: -1 });
+    if (sortedGenres.length) {
+      const genreRegex = new RegExp(`#(${sortedGenres.join("|")})`, "i");
 
-    if (!movie) return;
+      const movie = await MovieModel.findOne({
+        _id: { $nin: [...suggestedIds, ...accessedIds] },
+        keywords: { $elemMatch: { $regex: genreRegex } },
+      }).sort({ views: -1 });
 
-    // Yuborish
+      if (movie) content = { type: "movie", data: movie };
+
+      // Agar film topilmasa, serialdan izlaymiz
+      if (!content) {
+        const series = await SeriesModel.findOne({
+          _id: { $nin: [...suggestedIds, ...accessedIds] },
+          keywords: { $elemMatch: { $regex: genreRegex } },
+        }).sort({ views: -1 });
+
+        if (series) content = { type: "series", data: series };
+      }
+    }
+
+    // Agar content topilmasa (yangi user yoki tag topilmadi) — random fallback
+    if (!content) {
+      content = await getRandomContent([...suggestedIds, ...accessedIds]);
+      if (!content) return; // umuman content yo‘q bo‘lsa
+    }
+
+    const item = content.data;
+    const genres = (
+      sortedGenres.length ? sortedGenres : extractGenres(item.keywords)
+    )
+      .slice(0, 5) // faqat eng ko‘p 5 tasini
+      .map((g) => `#${g}`)
+      .join(" ");
+    const label =
+      content.type === "series" ? "🎬 Suggested Series" : "🎥 Suggested Movie";
+
     await bot.telegram.sendMessage(
       userId,
-      `🎥 <b>Suggested Movie:</b> ${movie.name}\n\n${movie.caption}`,
+      `${label}: <b>${item.name}</b>\n\n${item.caption}\n\n🎭 <b>Your type:</b> ${genres}`,
       {
         parse_mode: "HTML",
         reply_markup: {
@@ -71,11 +76,11 @@ export const suggestMovie = async (bot, userId) => {
             [
               {
                 text: "▶️ Show Teaser",
-                callback_data: `show_teaser_${movie._id}`,
+                callback_data: `show_teaser_${item._id}`,
               },
               {
-                text: "🍿 Watch Movie",
-                url: `https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}`,
+                text: "🍿 Watch Now",
+                url: `https://t.me/${process.env.BOT_USERNAME}?start=${item._id}`,
               },
             ],
           ],
@@ -83,9 +88,10 @@ export const suggestMovie = async (bot, userId) => {
       }
     );
 
-    user.suggestedMovies.push(movie._id);
+    user.suggestedMovies.push(item._id);
     await user.save();
   } catch (error) {
+    await adminNotifier(bot, error, null, "suggestMovie");
     console.error("Error suggesting movie:", error);
   }
 };

@@ -24,12 +24,10 @@ await ctx.telegram.sendVideo(process.env.ID, newSeries.teaser, {
     caption: `
 🎞️ <b><a href="https://t.me/${process.env.BOT_USERNAME}?start=${newSeries._id}">${newSeries.name}</a></b>
 
-<i>${newSeries.caption}</i>
-
 📀 <b>Season ${newSeries.series[0].seasonNumber}</b>
 🎬 <b>Total Episodes:</b> ${newSeries.series?.[0]?.episodes?.length || 0}
 
-<pre>${newSeries.series[0].episodes.length}</pre>
+<i>${newSeries.caption}</i>
 
 <blockquote>${newSeries.keywords?.join(",")}</blockquote>
 `,
