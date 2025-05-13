@@ -19,6 +19,7 @@ import findCurrentSeason from "./series/seasons/find_current.js";
 import saveNewSeason from "./series/seasons/saveSeason.js";
 import seriesTeaser from "./series/teaser.js";
 import title from "./series/title.js";
+import { adminNotifier } from "../utilities/admin_notifier.js";
 import { checkUserMembership, startMessage } from "./start.js";
 
 export async function handleStart(ctx) {
@@ -244,7 +245,6 @@ export async function handleStart(ctx) {
     } catch (error) {
       console.error("Error fetching movie or series:", error);
       return ctx.reply("There was an error processing your request.");
-      await adminNotifier(bot, error, ctx, "Start command error");
     }
   } else {
     startMessage(ctx); // Or your default start message
@@ -532,6 +532,5 @@ export const handleVideoOrDocument = async (ctx, userState) => {
   } catch (error) {
     console.error("Error handling video or document:", error);
     await ctx.reply("An error occurred while processing your request.");
-    await adminNotifier(bot, error, ctx, "Video/Document handling error");
   }
 };

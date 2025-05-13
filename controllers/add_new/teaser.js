@@ -19,7 +19,14 @@ export default async function teaser(ctx, userState) {
 
     await movie.save();
 
-    const captionText = caption(userState[userId], movie._id)
+    const captionText = `
+    🎞 ️<b><a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>${userState[userId].name}</a></b>
+    
+<b>💾 Size: ${userState[userId].movieSize ?? userState[userId].size}\n⏳ Running time: ${userState[userId].duration}</b>
+
+<i>${userState[userId].caption}</i>
+
+<blockquote>${userState[userId].keywords}</blockquote>`;
 
     await ctx.telegram.sendVideo(process.env.ID, teaser.file_id, {
         caption: captionText,
