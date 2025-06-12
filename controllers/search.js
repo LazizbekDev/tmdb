@@ -1,26 +1,26 @@
 import Movie from "../model/MovieModel.js";
 import Series from "../model/SeriesModel.js";
+import { cleanText } from "../utilities/utilities.js";
 
 export default async function search(ctx) {
     const query = ctx.inlineQuery.query;
     if (!query) return;
-
+    const cleanedText = cleanText(query);
     try {
         const [movies, seriesList] = await Promise.all([
-            Movie.find({
-                $or: [
-                    { name: { $regex: query, $options: "i" } },
-                    { keywords: { $regex: query, $options: "i" } },
-                ],
-            }),
-            Series.find({
-                $or: [
-                    { name: { $regex: query, $options: "i" } },
-                    { keywords: { $regex: query, $options: "i" } },
-                ],
-            }),
+        Movie.find({
+            $or: [
+            { cleanedName: { $regex: cleanedText, $options: "i" } },
+            { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
+            ],
+        }),
+        Series.find({
+            $or: [
+            { cleanedName: { $regex: cleanedText, $options: "i" } },
+            { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
+            ],
+        }),
         ]);
-
         const combinedResults = [
             ...movies.map((movie) => ({
                 type: "video",
