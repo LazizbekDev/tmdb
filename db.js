@@ -12,7 +12,7 @@ export const connect = async (URI) => {
     //     { accessedBy: { $exists: true } }, // Find documents where accessedBy is set
     //     { $set: { accessedBy: [] } }      // Set accessedBy to an empty array
     // );
-    const movies = await Movie.find();
+    const movies = await Movies.find();
     for (const movie of movies) {
       movie.cleanedName = cleanText(movie.name);
       movie.cleanedKeywords = movie.keywords.map(cleanText);
