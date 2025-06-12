@@ -21,6 +21,7 @@ import seriesTeaser from "./series/teaser.js";
 import title from "./series/title.js";
 import { adminNotifier } from "../utilities/admin_notifier.js";
 import { checkUserMembership, startMessage } from "./start.js";
+import { cleanText } from "../utilities/utilities.js";
 
 export async function handleStart(ctx) {
   const userId = ctx.message.from.id;
@@ -400,17 +401,19 @@ export const handleActionButtons = (bot, userState) => {
 const searchAndReply = async (ctx, messageText) => {
   try {
     const page = 1;
+    const cleanedText = cleanText(messageText);
+
     const [movies, seriesList] = await Promise.all([
       Movie.find({
         $or: [
-          { name: { $regex: messageText, $options: "i" } },
-          { keywords: { $regex: messageText, $options: "i" } },
+          { cleanedName: { $regex: cleanedText, $options: "i" } },
+          { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
         ],
       }),
       Series.find({
         $or: [
-          { name: { $regex: messageText, $options: "i" } },
-          { keywords: { $regex: messageText, $options: "i" } },
+          { cleanedName: { $regex: cleanedText, $options: "i" } },
+          { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
         ],
       }),
     ]);
@@ -432,12 +435,12 @@ const searchAndReply = async (ctx, messageText) => {
   }
 };
 
-export const handleTextInput = async (ctx, userState) => {
+export const handleTextInput = async (ctx, userState, bot) => {
   const userId = ctx.from.id;
   const messageText = ctx.message.text;
 
   if (!userState[userId]) {
-    return await searchAndReply(ctx, messageText); // fallback search
+    return await searchAndReply(ctx, messageText, bot); // fallback search
   }
 
   try {

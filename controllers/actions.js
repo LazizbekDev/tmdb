@@ -70,6 +70,25 @@ export default function actions(bot) {
     }
   });
 
+  bot.command("admin", (ctx) => {
+    if (ctx.from.id === parseInt(process.env.ADMIN_ID)) {
+      ctx.reply("Admin panel", {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "Admin panelni ochish",
+                web_app: { url: "https://lasiz.uz" },
+              },
+            ],
+          ],
+        },
+      });
+    } else {
+      ctx.reply("Sizda admin ruxsati yo‘q");
+    }
+  });
+
   bot.on("inline_query", search);
 
   handleActionButtons(bot, userState);
@@ -89,7 +108,7 @@ export default function actions(bot) {
   bot.on("text", async (ctx) => {
     try {
       if (ctx.message.via_bot) return;
-      await handleTextInput(ctx, userState);
+      await handleTextInput(ctx, userState, bot);
     } catch (error) {
       console.error("Error handling text input:", error);
       await ctx.reply("An error occurred while processing your request.");
@@ -128,8 +147,7 @@ export default function actions(bot) {
 
         // Try both movie and series
         const movie =
-          (await Movie.findById(movieId)) ||
-          (await Series.findById(movieId));
+          (await Movie.findById(movieId)) || (await Series.findById(movieId));
 
         if (!movie) return;
 

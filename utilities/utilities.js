@@ -38,3 +38,12 @@ export async function getRandomContent(excludeIds = []) {
 
   return null;
 }
+
+// Matnni tozalash funksiyasi
+export const cleanText = (text) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Diakritik belgilarni olib tashlash
+    .replace(/[^\w\s]|_/g, "") // Barcha maxsus belgilarni olib tashlash, faqat harf va raqamlarni saqlash
+    .replace(/\s+/g, "") // Bir nechta bo'shliqlarni olib tashlash
+    .toLowerCase(); // Kichik harflarga o'tkazish

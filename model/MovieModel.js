@@ -1,46 +1,28 @@
 import mongoose from "mongoose";
+import { cleanText } from "../utilities/utilities.js";
 
 const movieSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-    },
-    caption: {
-        type: String,
-        required: true,
-    },
-    movieUrl: {
-        type: String,
-        required: true,
-    },
-    keywords: {
-        type: [String],
-        required: true,
-    },
-    fileType: {
-        type: String,
-        required: true,
-    },
-    teaser: {
-        type: String,
-        required: true,
-    },
-    size: {
-        type: String,
-        required: true,
-    },
-    duration: {
-        type: String,
-        required: true,
-    },
-    views: {
-        type: Number,
-        default: 0,
-    },
-    accessedBy: {
-        type: [String],
-        required: true,
-    },
+  name: { type: String, required: true },
+  cleanedName: { type: String, required: true, index: true }, // Qo‘shilgan maydon
+  keywords: [{ type: String }],
+  cleanedKeywords: [{ type: String, index: true }], // Qo‘shilgan maydon
+  caption: { type: String },
+  teaser: { type: String },
+  fileType: { type: String },
+  size: { type: String },
+  duration: { type: String },
+  views: { type: Number, default: 0 },
+  movieUrl: { type: String },
 });
 
-export default mongoose.model("Movie", movieSchema);
+// Pre-save hook bilan tozalash
+movieSchema.pre("save", function (next) {
+  this.cleanedName = cleanText(this.name);
+  this.cleanedKeywords = this.keywords.map(cleanText);
+  next();
+});
+
+
+
+const Movie = mongoose.model("Movie", movieSchema);
+export default Movie;
