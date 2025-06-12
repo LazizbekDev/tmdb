@@ -12,11 +12,23 @@ export const connect = async (URI) => {
     //     { accessedBy: { $exists: true } }, // Find documents where accessedBy is set
     //     { $set: { accessedBy: [] } }      // Set accessedBy to an empty array
     // );
-    await Movies.syncIndexes();
+    const movies = await Movie.find();
+    for (const movie of movies) {
+      movie.cleanedName = cleanText(movie.name);
+      movie.cleanedKeywords = movie.keywords.map(cleanText);
+      await movie.save();
+    }
     console.log("Movies yangilandi!");
 
     // Series larni yangilash
-    await Series.syncIndexes();
+    const series = await Series.find();
+    for (const seriesDoc of series) {
+      seriesDoc.cleanedName = cleanText(seriesDoc.name);
+      seriesDoc.cleanedKeywords = seriesDoc.keywords.map(cleanText);
+      await seriesDoc.save();
+    }
+    console.log("Series yangilandi!");
+
     // Log current indexes
     // const indexes = await Movies.collection.getIndexes();
     // console.log("Current Indexes:", indexes);
