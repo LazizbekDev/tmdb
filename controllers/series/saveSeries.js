@@ -1,4 +1,5 @@
 import Series from "../../model/SeriesModel.js";
+import { cleanText } from "../../utilities/utilities.js";
 
 export default async function saveSeries(ctx, userState, userId) {
     const seriesData = userState[userId];
@@ -6,8 +7,10 @@ export default async function saveSeries(ctx, userState, userId) {
     // Prepare the series model to save
     const newSeries = new Series({
         name: seriesData.seriesName,
+        cleanedName: cleanText(seriesData.seriesName),
         caption: seriesData.caption,
         keywords: seriesData.keywords,
+        cleanedKeywords: seriesData.keywords.split(",").map((keyword) => cleanText(keyword)),
         teaser: seriesData.teaser,
         series: [
             {

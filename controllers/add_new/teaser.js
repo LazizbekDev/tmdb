@@ -1,5 +1,6 @@
 import Movie from "../../model/MovieModel.js";
 import caption from "../../utilities/caption.js";
+import { cleanText } from "../../utilities/utilities.js";
 
 export default async function teaser(ctx, userState) {
     const teaser = ctx.message.video;
@@ -7,6 +8,7 @@ export default async function teaser(ctx, userState) {
 
     const movie = new Movie({
         name: userState[userId].name,
+        cleanedName: cleanText(userState[userId].name),
         caption: userState[userId].caption,
         movieUrl: userState[userId].videoFileId,
         fileType: userState[userId].fileType,
@@ -14,6 +16,7 @@ export default async function teaser(ctx, userState) {
         size: userState[userId].movieSize,
         duration: userState[userId].duration,
         keywords: userState[userId].keywords.split(","),
+        cleanedKeywords: userState[userId].keywords.split(",").map(keyword => cleanText(keyword)),
         accessedBy: []
     });
 
