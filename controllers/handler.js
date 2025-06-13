@@ -85,7 +85,8 @@ export async function handleStart(ctx) {
 
       if (movie) {
         if (!movie?.accessedBy?.includes(userId.toString())) {
-          movie?.accessedBy?.push(userId.toString()); // Use push() to add the user ID to the array
+          movie.accessedBy = movie.accessedBy || [];
+          movie.accessedBy.push(userId.toString()); // Add user ID to the array
           movie.views += 1; // Increment views count
           user.accessedMovies.push(movie._id);
           await user.save();
@@ -93,10 +94,10 @@ export async function handleStart(ctx) {
           const adminMessage = `
 🔔 <b>Movie Accessed</b>
 ▪️ <b>Movie:</b> <a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>${movie.name}</a>
-▪️ <b>Access Count:</b> ${movie?.accessedBy?.length}
+▪️ <b>Access Count:</b> ${movie.accessedBy.length}
 ▪️ <b>User:</b> ${userFirstName} (@${userUsername})
 ▪️ <b>User ID:</b> <code>${userId}</code>
- `;
+`;
           await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {
             parse_mode: "HTML",
           });
@@ -150,17 +151,18 @@ export async function handleStart(ctx) {
       const series = await Series.findById(payload);
       if (series) {
         if (!series?.accessedBy?.includes(userId.toString())) {
-          series?.accessedBy.push(userId.toString());
+          series.accessedBy = series.accessedBy || [];
+          series.accessedBy.push(userId.toString());
           series.views += 1;
           await series.save();
 
           const adminMessage = `
-🔔 <b>Series Accessed</b>
-▪️ <b>Series:</b> <a href='https://t.me/${process.env.BOT_USERNAME}?start=${series._id}'>${series.name}</a>
-▪️ <b>Access Count:</b> ${series?.accessedBy.length}
+🔔 <b>Show Accessed</b>
+▪️ <b>Show:</b> <a href='https://t.me/${process.env.BOT_USERNAME}?start=${series._id}'>${series.name}</a>
+▪️ <b>Access Count:</b> ${series.accessedBy.length}
 ▪️ <b>User:</b> ${userFirstName} (@${userUsername})
 ▪️ <b>User ID:</b> <code>${userId}</code>
- `;
+`;
           await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {
             parse_mode: "HTML",
           });
