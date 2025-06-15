@@ -84,20 +84,26 @@ export async function handleStart(ctx) {
       const movie = await Movie.findById(payload);
 
       if (movie) {
-        if (!movie?.accessedBy?.includes(userId.toString())) {
-          movie.accessedBy = movie.accessedBy || [];
-          movie.accessedBy.push(userId.toString()); // Add user ID to the array
-          movie.views += 1; // Increment views count
+
+        if (!movie) return ctx.reply("Movie not found.");
+
+        const userIdStr = userId.toString();
+
+        if (!movie.accessedBy.includes(userIdStr)) {
+          movie.accessedBy.push(userIdStr); // Push only if not present
+          movie.views += 1;
+          await movie.save();
+
           user.accessedMovies.push(movie._id);
           await user.save();
-          await movie.save(); // Save the updated movie
+
           const adminMessage = `
 🔔 <b>Movie Accessed</b>
 ▪️ <b>Movie:</b> <a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>${movie.name}</a>
 ▪️ <b>Access Count:</b> ${movie.accessedBy.length}
 ▪️ <b>User:</b> ${userFirstName} (@${userUsername})
 ▪️ <b>User ID:</b> <code>${userId}</code>
-`;
+  `;
           await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {
             parse_mode: "HTML",
           });

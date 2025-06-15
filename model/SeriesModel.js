@@ -8,6 +8,7 @@ const SeriesSchema = new mongoose.Schema({
   keywords: [String],
   cleanedKeywords: [{ type: String, index: true }], // Qo‘shilgan tozalangan kalit so‘zlar
   teaser: String,
+  teaserpath: { type: String, required: false },
   series: [
     {
       seasonNumber: String,
@@ -35,6 +36,5 @@ SeriesSchema.pre("save", function (next) {
   this.cleanedKeywords = this.keywords.map(cleanText);
   next();
 });
-
 
 export default mongoose.model("Series", SeriesSchema);

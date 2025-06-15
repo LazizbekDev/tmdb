@@ -13,6 +13,8 @@ const movieSchema = new mongoose.Schema({
   duration: { type: String },
   views: { type: Number, default: 0 },
   movieUrl: { type: String },
+  filmpath: { type: String, required: false },
+  teaserpath: { type: String, required: false },
 });
 
 // Pre-save hook bilan tozalash
@@ -21,8 +23,6 @@ movieSchema.pre("save", function (next) {
   this.cleanedKeywords = this.keywords.map(cleanText);
   next();
 });
-
-
 
 const Movie = mongoose.model("Movie", movieSchema);
 export default Movie;

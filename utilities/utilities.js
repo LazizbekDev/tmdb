@@ -47,3 +47,15 @@ export const cleanText = (text) =>
     .replace(/[^\w\s]|_/g, "") // Barcha maxsus belgilarni olib tashlash, faqat harf va raqamlarni saqlash
     .replace(/\s+/g, "") // Bir nechta bo'shliqlarni olib tashlash
     .toLowerCase(); // Kichik harflarga o'tkazish
+
+export const getExtension = (mimeType = "") => {
+  const map = {
+    "video/mp4": "mp4",
+    "video/x-matroska": "mkv",
+    "video/quicktime": "mov",
+    "video/webm": "webm",
+    "audio/mpeg": "mp3",
+    "audio/ogg": "ogg",
+  };
+  return map[mimeType.toLowerCase()] || "mp4"; // default
+};

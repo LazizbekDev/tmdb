@@ -78,7 +78,7 @@ export default function actions(bot) {
             [
               {
                 text: "Admin panelni ochish",
-                web_app: { url: "https://lasiz.uz" },
+                web_app: { url: "https://tmdbase.netlify.app/" },
               },
             ],
           ],
