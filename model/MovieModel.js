@@ -15,6 +15,7 @@ const movieSchema = new mongoose.Schema({
   movieUrl: { type: String },
   filmpath: { type: String, required: false },
   teaserpath: { type: String, required: false },
+  accessedBy: { type: [String], default: []}
 });
 
 // Pre-save hook bilan tozalash
