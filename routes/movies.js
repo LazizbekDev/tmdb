@@ -81,29 +81,35 @@ export default function setupRoutes(app) {
   // Filmni yangilash
   app.put("/api/movies/:id", checkAdmin, async (req, res) => {
     try {
-      const movie = await Movie.findByIdAndUpdate(
-        req.params.id,
-        {
-          name: req.body.name,
-          caption: req.body.caption,
-          movieUrl: req.body.movieUrl,
-          keywords: req.body.keywords,
-          fileType: req.body.fileType,
-          teaser: req.body.teaser,
-          size: req.body.size,
-          duration: req.body.duration,
-          views: req.body.views,
-          accessedBy: req.body.accessedBy,
-        },
-        { new: true }
-      );
+      console.log("PUT /api/movies/:id payload:", req.body); // Log incoming payload
+      const { name, caption, movieUrl, keywords, fileType, teaser, teaserpath, size, duration, views, accessedBy } = req.body;
+
+      // Validate required fields
+      if (!name || !caption || !movieUrl || !fileType) {
+        return res.status(400).json({ error: "Name, caption, movieUrl, and fileType are required" });
+      }
+
+      const updateData = {
+        name,
+        caption,
+        movieUrl,
+        keywords: Array.isArray(keywords) ? keywords : [],
+        fileType,
+        teaser: teaser || teaserpath || '', // Use teaserpath if teaser is empty
+        size: size || '',
+        duration: duration || '',
+        views: parseInt(views) || 0,
+        accessedBy: Array.isArray(accessedBy) ? accessedBy : [],
+      };
+
+      const movie = await Movie.findByIdAndUpdate(req.params.id, updateData, { new: true });
       if (!movie) {
         return res.status(404).json({ error: "Film topilmadi" });
       }
       res.json(movie);
     } catch (err) {
       console.error("Filmni yangilashda xato:", err);
-      res.status(500).json({ error: "Filmni yangilashda xatolik" });
+      res.status(500).json({ error: "Filmni yangilashda xatolik", details: err.message });
     }
   });
 
