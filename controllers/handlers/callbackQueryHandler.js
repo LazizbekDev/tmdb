@@ -2,6 +2,7 @@ import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { extractGenres } from "../../utilities/utilities.js";
+import formatList, { generateHeader, generatePaginationButtons } from "../list/formatList.js";
 
 export function handleCallbackQueries(bot) {
   bot.on("callback_query", async (ctx) => {
@@ -20,6 +21,91 @@ export function handleCallbackQueries(bot) {
         await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {
           parse_mode: "HTML",
         });
+      } else if (callbackData.startsWith("show_")) {
+        // Handle /show pagination (e.g., show_1622899126_page_2)
+        const [, userId, , page] = callbackData.split("_");
+        const userIdNum = parseInt(userId);
+        const pageNum = parseInt(page);
+
+        if (isNaN(userIdNum) || isNaN(pageNum)) {
+          await ctx.answerCbQuery("Noto‘g‘ri so‘rov.");
+          return;
+        }
+
+        if (ctx.from.id !== parseInt(process.env.ADMIN_ID)) {
+          await ctx.answerCbQuery("Sizda bu amalni bajarish uchun ruxsat yo‘q.");
+          return;
+        }
+
+        const limit = 10;
+        const [movies, series, moviesCount, seriesCount] = await Promise.all([
+          Movie.find({ accessedBy: userId })
+            .sort({ _id: -1 })
+            .skip((pageNum - 1) * limit)
+            .limit(limit),
+          Series.find({ accessedBy: userId })
+            .sort({ _id: -1 })
+            .skip((pageNum - 1) * limit)
+            .limit(limit),
+          Movie.countDocuments({ accessedBy: userId }),
+          Series.countDocuments({ accessedBy: userId }),
+        ]);
+
+        if (moviesCount === 0 && seriesCount === 0) {
+          await ctx.answerCbQuery(`Foydalanuvchi (ID: ${userId}) hech qanday kontent ko‘rmagan.`);
+          return;
+        }
+
+        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
+        const header =
+          pageNum === 1
+            ? `<b>Foydalanuvchi (ID: ${userId}) ko‘rgan kontent</b>\n` +
+              `Filmlar: ${moviesCount} | Seriallar: ${seriesCount}\n\n`
+            : "";
+        const content = header + formatList(movies, series, pageNum, limit);
+        const paginationButtons = generatePaginationButtons(pageNum, totalPages, `show_${userId}_`);
+
+        await ctx.telegram.editMessageText(
+          ctx.chat.id,
+          ctx.callbackQuery.message.message_id,
+          undefined,
+          content || "No content available for this page.",
+          {
+            parse_mode: "HTML",
+            reply_markup: { inline_keyboard: paginationButtons },
+          }
+        );
+
+        await ctx.answerCbQuery();
+      } else if (callbackData.startsWith("page_")) {
+        // Handle /list pagination
+        const page = parseInt(callbackData.split("_")[1]);
+        const limit = 10;
+
+        const [movies, series, moviesCount, seriesCount] = await Promise.all([
+          Movie.find({}).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit),
+          Series.find({}).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit),
+          Movie.countDocuments({}),
+          Series.countDocuments({}),
+        ]);
+
+        const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
+        const header = page === 1 ? generateHeader(moviesCount, seriesCount) : "";
+        const content = header + formatList(movies, series, page, limit);
+        const paginationButtons = generatePaginationButtons(page, totalPages);
+
+        await ctx.telegram.editMessageText(
+          ctx.chat.id,
+          ctx.callbackQuery.message.message_id,
+          undefined,
+          content || "No content available for this page.",
+          {
+            parse_mode: "HTML",
+            reply_markup: { inline_keyboard: paginationButtons },
+          }
+        );
+
+        await ctx.answerCbQuery();
       } else if (callbackData.startsWith("show_teaser_")) {
         const movieId = callbackData.split("show_teaser_")[1];
         const movie = (await Movie.findById(movieId)) || (await Series.findById(movieId));
