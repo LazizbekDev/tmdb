@@ -1,214 +1,36 @@
-import Movie from "../model/MovieModel.js";
-import Series from "../model/SeriesModel.js";
-import User from "../model/User.js";
-import formatList, {
-  generateHeader,
-  generatePaginationButtons,
-} from "./list/formatList.js";
 import search from "./search.js";
-import {
-  handleActionButtons,
-  handleTextInput,
-  handleVideoOrDocument,
-} from "./handler.js";
-import { adminNotifier } from "../utilities/admin_notifier.js";
-import { suggestMovie } from "./suggestion.js";
-import { extractGenres } from "../utilities/utilities.js";
+import { handleActionButtons } from "./handlers/actionHandler.js";
+import { handleTextInput } from "./handlers/textHandler.js";
+import { handleVideoOrDocument } from "./handlers/mediaHandler.js";
+import { handleCommands } from "./handlers/commandHandler.js";
+import { handleCallbackQueries } from "./handlers/callbackQueryHandler.js";
+import { handleChatMemberUpdates } from "./handlers/chatMemberHandler.js";
 
-const userState = {};
+export default function setupActions(bot, userState) {
+  // Handle commands
+  handleCommands(bot);
 
-export default function actions(bot) {
-  bot.command("list", async (ctx) => {
-    try {
-      const page = parseInt(ctx.match?.[1] || 1); // Get the page from the callback data, default to 1
-      const limit = 10; // Show 10 movies/series per page
-
-      const movies = await Movie.find({})
-        .sort({ _id: -1 })
-        .skip((page - 1) * limit) // Skip the appropriate number of movies
-        .limit(limit); // Limit the results to `limit`
-
-      const series = await Series.find({})
-        .sort({ _id: -1 })
-        .skip((page - 1) * limit) // Skip the appropriate number of series
-        .limit(limit); // Limit the results to `limit`
-
-      const moviesCount = await Movie.countDocuments({});
-      const seriesCount = await Series.countDocuments({});
-
-      const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
-
-      let header = "";
-      if (page === 1) {
-        header = generateHeader(moviesCount, seriesCount); // Call your header generator function
-      }
-
-      const content = header + formatList(movies, series, page, limit);
-
-      const paginationButtons = generatePaginationButtons(page, totalPages);
-
-      await ctx.reply(content, {
-        parse_mode: "HTML",
-        reply_markup: {
-          inline_keyboard: paginationButtons,
-        },
-      });
-    } catch (error) {
-      console.error("Error in /list command:", error);
-      await ctx.reply("An error occurred while processing your request.");
-      await adminNotifier(bot, error, ctx, "List command error");
-    }
-  });
-
-  bot.command("suggest", async (ctx) => {
-    try {
-      await suggestMovie(bot, ctx.from.id);
-    } catch (error) {
-      console.error("Error in /suggest command:", error);
-      await ctx.reply("An error occurred while processing your request.");
-      await adminNotifier(bot, error, ctx, "Suggest command error");
-    }
-  });
-
-  bot.command("admin", (ctx) => {
-    if (ctx.from.id === parseInt(process.env.ADMIN_ID)) {
-      ctx.reply("Admin panel", {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "Admin panelni ochish",
-                web_app: { url: "https://tmdbase.netlify.app/admin/" },
-              },
-            ],
-          ],
-        },
-      });
-    } else {
-      ctx.reply("Sizda admin ruxsati yo‘q");
-    }
-  });
-
+  // Handle inline queries
   bot.on("inline_query", search);
 
+  // Handle action buttons
   handleActionButtons(bot, userState);
 
+  // Handle text input
+  bot.on("text", (ctx) => {
+    if (ctx.message.via_bot) return;
+    handleTextInput(ctx, userState, bot);
+  });
+
   // Handle video and document messages
-  bot.on(["video", "document"], async (ctx) => {
-    try {
-      if (ctx.message.via_bot) return;
-      await handleVideoOrDocument(ctx, userState);
-    } catch (error) {
-      console.error("Error handling video or document:", error);
-      await ctx.reply("An error occurred while processing your request.");
-      await adminNotifier(bot, error, ctx, "Video/Document handling error");
-    }
+  bot.on(["video", "document"], (ctx) => {
+    if (ctx.message.via_bot) return;
+    handleVideoOrDocument(ctx, userState);
   });
 
-  bot.on("text", async (ctx) => {
-    try {
-      if (ctx.message.via_bot) return;
-      await handleTextInput(ctx, userState, bot);
-    } catch (error) {
-      console.error("Error handling text input:", error);
-      await ctx.reply("An error occurred while processing your request.");
-      await adminNotifier(bot, error, ctx, "Text input handling error");
-    }
-  });
+  // Handle callback queries
+  handleCallbackQueries(bot);
 
-  bot.on("callback_query", async (ctx) => {
-    const callbackData = ctx.callbackQuery.data;
-
-    try {
-      if (callbackData.startsWith("request_")) {
-        // Extract the query part from the callback data
-        const query = callbackData.replace("request_", "");
-
-        // Respond to the user
-        await ctx.answerCbQuery(
-          `✅ Your request for "${query}" has been submitted successfully!`
-        ); // Acknowledge the callback query to Telegram
-        // await ctx.reply(
-        //     `✅ Your request for "${query}" has been submitted successfully!`
-        // );
-
-        // Optionally, send the request to an admin or log it
-        const adminMessage = `
-    🎥 <b>New Movie/Series Request</b>
-    ▪️ <b>Requested Item:</b> ${query}
-    ▪️ <b>From User:</b> ${ctx.from.first_name} (@${ctx.from.username})
-    ▪️ <b>User ID:</b> ${ctx.from.id}
-    `;
-        await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {
-          parse_mode: "HTML",
-        });
-      } else if (callbackData.startsWith("show_teaser_")) {
-        const movieId = callbackData.split("show_teaser_")[1];
-
-        // Try both movie and series
-        const movie =
-          (await Movie.findById(movieId)) || (await Series.findById(movieId));
-
-        if (!movie) return;
-
-        const genres = extractGenres(movie.keywords)
-          .map((g) => `#${g}`)
-          .join(" ");
-        const label =
-          movie.__t === "Series" ? "🎬 Suggested Series" : "🎥 Suggested Movie";
-
-        const fullCaption = `${label}: <b>${movie.name}</b>\n\n${movie.caption}\n\n🎭 <b>Genres:</b> ${genres}`;
-
-        await bot.telegram.editMessageMedia(
-          ctx.from.id,
-          ctx.callbackQuery.message.message_id,
-          undefined,
-          {
-            type: "video",
-            media: movie.teaser,
-            caption: fullCaption,
-            parse_mode: "HTML",
-          },
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: "🍿 Watch Now",
-                    url: `https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}`,
-                  },
-                ],
-              ],
-            },
-          }
-        );
-
-        await ctx.answerCbQuery();
-      }
-    } catch (error) {
-      console.error("Error handling callback query:", error);
-      await ctx.reply("An error occurred while processing your request.");
-      await adminNotifier(bot, error, ctx, "Callback query handling error");
-    }
-  });
-
-  bot.on("my_chat_member", async (ctx) => {
-    try {
-      const status = ctx.update.my_chat_member.new_chat_member.status;
-      const userId = ctx.update.my_chat_member.from.id;
-
-      if (status === "kicked" || status === "left") {
-        // User blocked or deleted the bot
-        await User.findOneAndUpdate(
-          { telegramId: userId },
-          { $set: { leftTheBot: true } }
-        );
-        console.log(`User ${userId} has blocked or deleted the bot.`);
-      }
-    } catch (error) {
-      console.error("Error in my_chat_member handler:", error);
-      await ctx.reply("An error occurred while processing your request.");
-      await adminNotifier(bot, error, ctx, "my_chat_member error");
-    }
-  });
+  // Handle chat member updates
+  bot.on("my_chat_member", handleChatMemberUpdates);
 }
