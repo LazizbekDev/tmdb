@@ -5,8 +5,12 @@ import { handleVideoOrDocument } from "./handlers/mediaHandler.js";
 import { handleCommands } from "./handlers/commandHandler.js";
 import { handleCallbackQueries } from "./handlers/callbackQueryHandler.js";
 import { handleChatMemberUpdates } from "./handlers/chatMemberHandler.js";
+import { handleStart } from "./handlers/startHandler.js";
 
 export default function setupActions(bot, userState) {
+    // Handle /start command
+  bot.start((ctx) => handleStart(ctx, userState));
+
   // Handle commands
   handleCommands(bot);
 
