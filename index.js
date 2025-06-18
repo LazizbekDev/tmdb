@@ -12,7 +12,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-(async () => {
+setupRoutes(app); // Route-larni server ishlashidan oldin chaqirish kerak
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, async () => {
+  console.log(`🌐 SERVER ON: http://localhost:${PORT}`);
+
   try {
     await connect(process.env.DB);
     console.log("✅ MongoDB connected");
@@ -21,15 +27,9 @@ app.use(cors());
     await bot.launch();
     console.log("🚀 Bot launched");
 
-    setupRoutes(app);
     setupCronJobs(bot);
-
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`🌐 SERVER ON: http://localhost:${PORT}`);
-    });
   } catch (err) {
     console.error("❌ Server initialization error:", err);
     process.exit(1);
   }
-})();
+});
