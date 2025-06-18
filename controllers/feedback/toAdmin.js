@@ -30,7 +30,5 @@ export default async function toAdmin(ctx) {
 
     await ctx.reply(
         "Thank you for your feedback! We'll get back to you shortly."
-    );
-            // clear userState after feedback is sent
-    
+    );    
 }

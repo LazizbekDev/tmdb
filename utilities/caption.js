@@ -1,14 +1,15 @@
-export default function caption(item, id, showLink = true) {
+export default function caption(movie, showLink = true) {
+    const title = showLink && botUsername
+        ? `<a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>${movie.name}</a>`
+        : movie.name;
+
     return `
-🎞 ️<b>${item.name}\n</b>
-${
-    showLink
-        ? `👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${id}">Tap to watch</a>\n`
-        : ""
-}
-<i>${item.caption}</i>
-<pre>Size: ${item.movieSize ?? item.size}
-Running time: ${item.duration}
-</pre>
-<blockquote>${item.keywords}</blockquote>`;
+🎞 ️<b>${title}</b>
+
+<b>💾 Size: ${movie.size ?? movie.movieSize}
+⏳ Running time: ${movie.duration}</b>
+
+<i>${movie.caption}</i>
+
+<blockquote>${Array.isArray(movie.keywords) ? movie.keywords.join(", ") : movie.keywords}</blockquote>`;
 }

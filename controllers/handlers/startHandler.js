@@ -1,4 +1,3 @@
-import UserSubmission from "../../model/FilmRequest.js";
 import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
 import User from "../../model/User.js";
@@ -6,7 +5,7 @@ import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { checkUserMembership, startMessage } from "../start.js";
 import caption from "../../utilities/caption.js";
 
-export async function handleStart(ctx, userState) {
+export async function handleStart(ctx) {
   const userId = ctx.message.from.id;
   const isMember = await checkUserMembership(userId);
   const payload = ctx.startPayload;
@@ -36,11 +35,12 @@ export async function handleStart(ctx, userState) {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "Join Now", url: `https://t.me/${process.env.CHANNEL_USERNAME}` },
+                {
+                  text: "Join Now",
+                  url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
+                },
               ],
-              [
-                { text: "Check Membership", callback_data: "check_membership" },
-              ],
+              [{ text: "Check Membership", callback_data: "check_membership" }],
             ],
           },
         }
@@ -51,7 +51,10 @@ export async function handleStart(ctx, userState) {
       const movie = await Movie.findById(payload);
       if (movie) {
         const userIdStr = userId.toString();
-        if (!movie.accessedBy.includes(userIdStr)) {
+        const hasAccessedBefore = movie.accessedBy.includes(userIdStr);
+        // Agar ilgari ko‘rgan bo‘lsa va hozir a'zo bo‘lsa => protected content false bo‘lib yuborilsin
+        const shouldProtect = !isMember && !hasAccessedBefore;
+        if (!hasAccessedBefore) {
           movie.accessedBy.push(userIdStr);
           movie.views += 1;
           await movie.save();
@@ -69,10 +72,12 @@ export async function handleStart(ctx, userState) {
             parse_mode: "HTML",
           });
         }
-        ctx.replyWithVideo(movie.movieUrl, {
-          caption: caption(movie, movie._id, false),
+
+        // Video yuborish — har qanday holatda
+        await ctx.replyWithVideo(movie.movieUrl, {
+          caption: caption(movie, false),
           parse_mode: "HTML",
-          protect_content: !isMember,
+          protect_content: shouldProtect,
           reply_markup: {
             inline_keyboard: [
               [{ text: "Search", switch_inline_query_current_chat: "" }],
@@ -80,7 +85,7 @@ export async function handleStart(ctx, userState) {
           },
         });
 
-        if (!isMember) {
+        if (!isMember && !hasAccessedBefore) {
           user.accessCount++;
           await user.save();
           return ctx.reply(
@@ -89,7 +94,12 @@ export async function handleStart(ctx, userState) {
               parse_mode: "HTML",
               reply_markup: {
                 inline_keyboard: [
-                  [{ text: "Join", url: `https://t.me/${process.env.CHANNEL_USERNAME}` }],
+                  [
+                    {
+                      text: "Join",
+                      url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
+                    },
+                  ],
                   [{ text: "Check", callback_data: "check_membership" }],
                 ],
               },
@@ -119,11 +129,17 @@ export async function handleStart(ctx, userState) {
           });
         }
         let totalEpisodes = 0;
-        for (const season of series.series.sort((a, b) => a.seasonNumber - b.seasonNumber)) {
+        for (const season of series.series.sort(
+          (a, b) => a.seasonNumber - b.seasonNumber
+        )) {
           totalEpisodes += season.episodes.length;
-          for (const episode of season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber)) {
+          for (const episode of season.episodes.sort(
+            (a, b) => a.episodeNumber - b.episodeNumber
+          )) {
             await ctx.replyWithVideo(episode.fileId, {
-              caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${season.seasonNumber}, Episode ${episode.episodeNumber}`,
+              caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${
+                season.seasonNumber
+              }, Episode ${episode.episodeNumber}`,
               parse_mode: "HTML",
               protect_content: !isMember,
             });
@@ -150,7 +166,12 @@ export async function handleStart(ctx, userState) {
               parse_mode: "HTML",
               reply_markup: {
                 inline_keyboard: [
-                  [{ text: "Join", url: `https://t.me/${process.env.CHANNEL_USERNAME}` }],
+                  [
+                    {
+                      text: "Join",
+                      url: `https://t.me/${process.env.CHANNEL_USERNAME}`,
+                    },
+                  ],
                   [{ text: "Check", callback_data: "check_membership" }],
                 ],
               },
@@ -175,7 +196,12 @@ export async function handleStart(ctx, userState) {
     startMessage(ctx);
   } catch (error) {
     console.error("❌ Error in handleStart:", error);
-    await adminNotifier(ctx.telegram, error, ctx, "Error in handleStart function");
+    await adminNotifier(
+      ctx.telegram,
+      error,
+      ctx,
+      "Error in handleStart function"
+    );
     return ctx.reply("⚠️ Something went wrong. Please try again later.");
   }
 }

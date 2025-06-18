@@ -1,4 +1,4 @@
-export default async function movie(ctx,userState, file) {
+export default async function movie(ctx, file) {
     if (!file) {
         return ctx.reply("Please send a valid video file.");
     }
@@ -13,6 +13,7 @@ export default async function movie(ctx,userState, file) {
             return `${(size / 1048576).toFixed(2)} MB`;
         else return `${(size / 1073741824).toFixed(2)} GB`;
     };
+    
     function formatDuration(seconds) {
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
@@ -25,23 +26,15 @@ export default async function movie(ctx,userState, file) {
         return `${paddedHours}h ${paddedMinutes}m ${paddedSeconds}s`;
     }
 
-    // console.log(file);
-
     if (!fileType.startsWith("video/")) {
-        return ctx.reply(
-            "Only video files are accepted. Please send a valid video file."
-        );
+        return ctx.reply("Only video files are accepted. Please send a valid video file.");
     }
 
-    userState[ctx.from.id] = {
-        step: "awaitingDetails",
-        videoFileId: file.file_id,
-        fileType: fileType,
-        movieSize: formatFileSize(file.file_size),
-        duration: formatDuration(file.duration),
-    };
+    ctx.session.step = "awaitingDetails";
+    ctx.session.videoFileId = file.file_id;
+    ctx.session.fileType = fileType;
+    ctx.session.movieSize = formatFileSize(file.file_size);
+    ctx.session.duration = formatDuration(file.duration);
 
-    await ctx.reply(
-        "Video received. Please send the movie details in the format: name | caption | keywords"
-    );
-};
+    await ctx.reply("Video received. Please send the movie details in the format: name | caption | keywords");
+}

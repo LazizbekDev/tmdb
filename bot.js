@@ -1,22 +1,26 @@
 import { Telegraf } from "telegraf";
 import setupHandlers from "./controllers/handler.js";
 import setupActions from "./controllers/actions.js";
+import applySession from "./utilities/session.js";
 
-export function setupBot() {
+export async function setupBot() {
   const token = process.env.BOT_TOKEN;
   const bot = new Telegraf(token);
 
-  // Initialize user state
-  const userState = {};
+  // 💾 Session middlewareni ulash
+  await applySession(bot); // session birinchi bo‘lishi kerak!
 
-  // Setup actions
-  setupActions(bot, userState);
+  // 🔁 User state (agar kerak bo‘lsa, lekin endi ctx.session bo'ladi)
 
-  // Setup handlers
-  setupHandlers(bot, userState);
-  // Web App data handling
+  // ⚙️ Harakatlar
+  setupActions(bot);
+
+  // 📥 Xabarlar
+  setupHandlers(bot);
+
+  // 🌐 WebApp data
   bot.on("web_app_data", (ctx) => {
-    const data = ctx.webAppData.data.json();
+    const data = JSON.parse(ctx.webAppData.data);
     ctx.reply(`Web App’dan ma’lumot: ${JSON.stringify(data)}`);
   });
 

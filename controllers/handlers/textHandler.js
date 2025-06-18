@@ -11,37 +11,38 @@ import saveSeries from "../series/saveSeries.js";
 import saveNewSeason from "../series/seasons/saveSeason.js";
 import info from "../add_new/info.js";
 
-export async function handleTextInput(ctx, userState, bot) {
+export async function handleTextInput(ctx, bot) {
   const userId = ctx.from.id;
   const messageText = ctx.message.text;
+  const ctxData = ctx.session;
 
-  if (!userState[userId]) {
+  // Sessiya tekshiruvi
+  if (!ctxData || !ctxData.step) {
     return await searchAndReply(ctx, messageText, bot);
   }
 
   try {
-    switch (userState[userId].step) {
+    switch (ctxData.step) {
       case "awaitingSeriesForNewSeason":
-        await findCurrentSeason(ctx, userState, userId);
+        await findCurrentSeason(ctx, ctxData, userId);
         break;
       case "awaitingSeriesDetails":
-        await title(ctx, userState, userId);
+        await title(ctx, ctxData, userId);
         break;
       case "awaitingDetails":
-        await info(ctx, userState);
+        await info(ctx, ctxData);
         break;
       case "awaitingFeedback":
         await toAdmin(ctx);
-        delete userState[userId];
         break;
       case "awaitingSeriesFiles":
         if (messageText === "Done") {
-          await saveSeries(ctx, userState, userId);
+          await saveSeries(ctx, ctxData, userId);
         }
         break;
       case "awaitingNewSeasonDetails":
         if (messageText === "Done") {
-          await saveNewSeason(ctx, userState, userId);
+          await saveNewSeason(ctx, ctxData, userId);
         }
         break;
       case "awaitingRequestName":
@@ -61,7 +62,6 @@ export async function handleTextInput(ctx, userState, bot) {
           { parse_mode: "HTML" }
         );
         await ctx.reply("Thank you! Your request has been submitted.");
-        delete userState[userId];
         break;
     }
   } catch (error) {

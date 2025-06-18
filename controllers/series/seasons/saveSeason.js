@@ -1,30 +1,33 @@
 import Series from "../../../model/SeriesModel.js";
 
-export default async function saveNewSeason(ctx, userState, userId) {
-    const seriesId = userState[userId].seriesId;
-    const seasonNumber = userState[userId].seasonNumber;
-    const episodes = userState[userId].episodes;
+export default async function saveNewSeason(ctx) {
+  const { seriesId, seasonNumber, episodes } = ctx.session;
 
-    // Find the series and add the new season
-    const series = await Series.findById(seriesId);
+  // Check if necessary data is present
+  if (!seriesId || !seasonNumber || !Array.isArray(episodes)) {
+    return ctx.reply("Incomplete session data. Please start over.");
+  }
 
-    if (!series) {
-        return ctx.reply("Series not found.");
-    }
+  // Find the series and add the new season
+  const series = await Series.findById(seriesId);
 
-    series.series.push({
-        seasonNumber: seasonNumber,
-        episodes: episodes,
-    });
+  if (!series) {
+    return ctx.reply("Series not found.");
+  }
 
-    await series.save();
+  series.series.push({
+    seasonNumber,
+    episodes,
+  });
 
-    // Clear the user state
-    delete userState[userId];
+  await series.save();
 
-    await ctx.reply(`Season ${seasonNumber} saved successfully!`, {
-        reply_markup: {
-            remove_keyboard: true, // Remove the keyboard after done
-        },
-    });
+  // Clear the session
+  delete ctx.session;
+
+  await ctx.reply(`Season ${seasonNumber} saved successfully!`, {
+    reply_markup: {
+      remove_keyboard: true,
+    },
+  });
 }

@@ -1,18 +1,15 @@
-export default async function title(ctx, userState, userId) {
+export default async function title(ctx) {
     const [name, season, caption, keywords] = ctx.message.text
         .split("|")
         .map((s) => s.trim());
 
-    // Store series information and initialize episode number
-    userState[userId] = {
-        step: "awaitingSeriesTeaser", // Change to awaiting series files
-        seriesName: name,
-        seasonNumber: parseInt(season), // Convert season to number
-        caption: caption,
-        keywords: keywords?.split(","),
-        episodes: [], // Array to store episodes
-        episodeNumber: 1, // Start from the first episode
-    };
+    ctx.session.step = "awaitingSeriesTeaser"; // Keyingi bosqich
+    ctx.session.seriesName = name;
+    ctx.session.seasonNumber = parseInt(season); // String -> number
+    ctx.session.caption = caption;
+    ctx.session.keywords = keywords?.split(",").map(k => k.trim());
+    ctx.session.episodes = [];
+    ctx.session.episodeNumber = 1;
 
     await ctx.reply("Now send the teaser of the series");
 }

@@ -1,42 +1,35 @@
-import express from "express";
 import { config } from "dotenv";
+import express from "express";
+import cors from "cors";
 import { connect } from "./db.js";
 import { setupBot } from "./bot.js";
 import setupRoutes from "./routes/movies.js";
 import { setupCronJobs } from "./cronJobs.js";
-import cors from "cors";
 
-// .env faylini yuklash
 config();
 
-// MongoDB ulanishi
-connect(process.env.DB)
-  .then(() => {
-    console.info("Database connection established");
-  })
-  .catch((err) => {
-    console.error("Database connection error:", err);
-  });
-
-// Express server sozlamasi
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Botni sozlash
-const bot = setupBot();
+(async () => {
+  try {
+    await connect(process.env.DB);
+    console.log("✅ MongoDB connected");
 
-// API route'larni sozlash
-setupRoutes(app);
+    const bot = await setupBot();
+    await bot.launch();
+    console.log("🚀 Bot launched");
 
-// Cron job'larni sozlash
-setupCronJobs(bot);
+    setupRoutes(app);
+    setupCronJobs(bot);
 
-// Serverni ishga tushirish
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// Botni polling rejimida ishga tushirish
-bot.launch();
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`🌐 SERVER ON: http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("❌ Server initialization error:", err);
+    process.exit(1);
+  }
+})();

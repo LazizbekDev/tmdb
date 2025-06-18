@@ -18,6 +18,7 @@ const movieSchema = new mongoose.Schema({
   accessedBy: { type: [String], default: []}
 });
 
+movieSchema.index({ name: "text", keywords: "text" }); // Text search uchun
 // Pre-save hook bilan tozalash
 movieSchema.pre("save", function (next) {
   this.cleanedName = cleanText(this.name);

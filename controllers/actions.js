@@ -7,9 +7,9 @@ import { handleCallbackQueries } from "./handlers/callbackQueryHandler.js";
 import { handleChatMemberUpdates } from "./handlers/chatMemberHandler.js";
 import { handleStart } from "./handlers/startHandler.js";
 
-export default function setupActions(bot, userState) {
+export default function setupActions(bot) {
     // Handle /start command
-  bot.start((ctx) => handleStart(ctx, userState));
+  bot.start((ctx) => handleStart(ctx));
 
   // Handle commands
   handleCommands(bot);
@@ -18,18 +18,18 @@ export default function setupActions(bot, userState) {
   bot.on("inline_query", search);
 
   // Handle action buttons
-  handleActionButtons(bot, userState);
+  handleActionButtons(bot);
 
   // Handle text input
   bot.on("text", (ctx) => {
     if (ctx.message.via_bot) return;
-    handleTextInput(ctx, userState, bot);
+    handleTextInput(ctx, bot);
   });
 
   // Handle video and document messages
   bot.on(["video", "document"], (ctx) => {
     if (ctx.message.via_bot) return;
-    handleVideoOrDocument(ctx, userState);
+    handleVideoOrDocument(ctx);
   });
 
   // Handle callback queries
