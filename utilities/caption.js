@@ -1,5 +1,5 @@
 export default function caption(movie, showLink = true) {
-    const title = showLink && botUsername
+    const title = showLink && process.env.BOT_USERNAME
         ? `<a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>${movie.name}</a>`
         : movie.name;
 
