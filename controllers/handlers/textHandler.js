@@ -3,7 +3,10 @@ import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { cleanText } from "../../utilities/utilities.js";
-import formatList, { generateHeader, generatePaginationButtons } from "../list/formatList.js";
+import formatList, {
+  generateHeader,
+  generatePaginationButtons,
+} from "../list/formatList.js";
 import toAdmin from "../feedback/toAdmin.js";
 import title from "../series/title.js";
 import findCurrentSeason from "../series/seasons/find_current.js";
@@ -63,6 +66,67 @@ export async function handleTextInput(ctx, bot) {
         );
         await ctx.reply("Thank you! Your request has been submitted.");
         break;
+      case "name_input":
+        if (!ctxData.updateFields) ctxData.updateFields = {};
+        ctxData.updateFields.name = messageText;
+        ctxData.step = "description_input";
+        const movieId = ctxData.targetMovieId;
+        await ctx.reply("Please choose an option for the description:", {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "Leave current description",
+                  callback_data: `leave_description_${movieId}`,
+                },
+              ],
+              [
+                {
+                  text: "Enter new description",
+                  callback_data: `enter_description_${movieId}`,
+                },
+              ],
+            ],
+          },
+        });
+        break;
+      case "description_input":
+        if (!ctxData.updateFields) ctxData.updateFields = {};
+        ctxData.updateFields.description = messageText;
+        ctxData.step = "keywords_input";
+        const movieIdDesc = ctxData.targetMovieId;
+        await ctx.reply("Please choose an option for the keywords:", {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "Leave current keywords",
+                  callback_data: `leave_keywords_${movieIdDesc}`,
+                },
+              ],
+              [
+                {
+                  text: "Enter new keywords",
+                  callback_data: `enter_keywords_${movieIdDesc}`,
+                },
+              ],
+            ],
+          },
+        });
+        break;
+      case "keywords_input":
+        if (!ctxData.updateFields) ctxData.updateFields = {};
+        ctxData.updateFields.keywords = messageText;
+        delete ctxData.step;
+        const movieIdKey = ctxData.targetMovieId;
+        await ctx.reply("Update complete! Press to save changes:", {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "Save film", callback_data: `save_${movieIdKey}` }],
+            ],
+          },
+        });
+        break;
     }
   } catch (error) {
     console.error("🚨 Error handling text input:", error);
@@ -90,7 +154,9 @@ async function searchAndReply(ctx, messageText, bot) {
       }),
     ]);
 
-    const totalPages = Math.ceil(Math.max(movies.length, seriesList.length) / 30);
+    const totalPages = Math.ceil(
+      Math.max(movies.length, seriesList.length) / 30
+    );
     const header = generateHeader(movies.length, seriesList.length);
     const content = formatList(movies, seriesList, page, 30);
     const buttons = generatePaginationButtons(page, totalPages);

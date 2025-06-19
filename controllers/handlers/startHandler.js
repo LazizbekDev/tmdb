@@ -72,7 +72,8 @@ export async function handleStart(ctx) {
             parse_mode: "HTML",
           });
         }
-
+        const isAdmin =
+          ctx.message.from?.username?.toLowerCase() === process.env.ADMIN;
         // Video yuborish — har qanday holatda
         await ctx.replyWithVideo(movie.movieUrl, {
           caption: caption(movie, false),
@@ -80,7 +81,15 @@ export async function handleStart(ctx) {
           protect_content: shouldProtect,
           reply_markup: {
             inline_keyboard: [
-              [{ text: "Search", switch_inline_query_current_chat: "" }],
+              ...(isAdmin
+                ? [
+                    [
+                      { text: "Delete 🗑", callback_data: `delete_${movie._id}` },
+                      { text: "Update ✏️", callback_data: `update_${movie._id}` }
+                    ],
+                    [{ text: "Search", switch_inline_query_current_chat: "" }],
+                  ]
+                : [[{ text: "Search", switch_inline_query_current_chat: "" }]]),
             ],
           },
         });
