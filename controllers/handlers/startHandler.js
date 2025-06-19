@@ -2,7 +2,7 @@ import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
 import User from "../../model/User.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
-import { checkUserMembership, startMessage } from "../start.js";
+import { checkUserMembership, createUserLink, startMessage } from "../start.js";
 import caption from "../../utilities/caption.js";
 
 export async function handleStart(ctx) {
@@ -65,7 +65,7 @@ export async function handleStart(ctx) {
 🔔 <b>Movie Accessed</b>
 ▪️ <b>Movie:</b> <a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>${movie.name}</a>
 ▪️ <b>Access Count:</b> ${movie.accessedBy.length}
-▪️ <b>User:</b> ${userFirstName} (@${userUsername})
+▪️ <b>User:</b> <a href='${createUserLink(ctx.message.from)}'>${userFirstName}</a>
 ▪️ <b>User ID:</b> <code>${userId}</code>
           `;
           await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {

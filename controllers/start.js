@@ -21,7 +21,7 @@ export const checkUserMembership = async (userId) => {
     );
 };
 
-export const createUserLink = async (user) => {
+export const createUserLink = (user) => {
     if (user.username) {
         return `https://t.me/${user.username}`;
     } else {

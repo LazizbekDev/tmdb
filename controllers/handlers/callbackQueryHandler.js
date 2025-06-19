@@ -106,8 +106,8 @@ export function handleCallbackQueries(bot) {
         );
 
         await ctx.answerCbQuery();
-      } else if (callbackData.startsWith("show_teaser_")) {
-        const movieId = callbackData.split("show_teaser_")[1];
+      } else if (callbackData.startsWith("reveal_teaser_")) {
+        const movieId = callbackData.split("reveal_teaser_")[1];
         const movie = (await Movie.findById(movieId)) || (await Series.findById(movieId));
 
         if (!movie) {
