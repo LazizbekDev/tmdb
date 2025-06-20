@@ -1,6 +1,7 @@
 import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
+import { getMovieById, sendUpdateMessage } from "../../utilities/updateFilm.js";
 import { extractGenres } from "../../utilities/utilities.js";
 import formatList, {
   generateHeader,
@@ -200,6 +201,7 @@ export function handleCallbackQueries(bot) {
           }
         );
       } else if (callbackData.startsWith("update_")) {
+        await ctx.answerCbQuery();
         const movieId = callbackData.split("update_")[1];
         const isAdmin = ctx.from.id === parseInt(process.env.ADMIN_ID);
 
@@ -210,141 +212,58 @@ export function handleCallbackQueries(bot) {
           return;
         }
 
-        ctx.session.step = `updating_${movieId}`;
+        // ctx.session.step = `updating_${movieId}`;
         ctx.session.updateFields = {};
-        // ctx.session.updateStep = "name_input";
+        ctx.session.step = "name_input";
 
-        const updateMovie = await Movie.findById(movieId);
-        if (!updateMovie) {
-          await ctx.answerCbQuery("Movie not found.", { show_alert: true });
-          delete ctx.session.step;
-          return;
-        }
-
-        await ctx.reply("Please choose an option for the movie name:", {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "Leave current name",
-                  callback_data: `leave_name_${movieId}`,
-                },
-              ],
-              [
-                {
-                  text: "Enter new name",
-                  callback_data: `enter_name_${movieId}`,
-                },
-              ],
-            ],
-          },
-        });
+        // const updateMovie = await getMovieById(movieId);
+        await sendUpdateMessage(
+          ctx,
+          "Please choose an option for the movie name or enter a new name:",
+          movieId,
+          "name"
+        );
       } else if (callbackData.startsWith("leave_name_")) {
+        await ctx.answerCbQuery();
         const movieId = callbackData.split("leave_name_")[1];
-        const updateMovie = await Movie.findById(movieId);
-        if (!updateMovie) {
-          await ctx.answerCbQuery("Movie not found.", { show_alert: true });
-          delete ctx.session.step;
-          return;
-        }
-
+        const updateMovie = await getMovieById(movieId);
         ctx.session.updateFields.name = updateMovie.name;
         ctx.session.step = "description_input";
-
-        await ctx.reply("Please choose an option for the description:", {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "Leave current description",
-                  callback_data: `leave_description_${movieId}`,
-                },
-              ],
-              [
-                {
-                  text: "Enter new description",
-                  callback_data: `enter_description_${movieId}`,
-                },
-              ],
-            ],
-          },
-        });
-      } else if (callbackData.startsWith("enter_name_")) {
-        const movieId = callbackData.split("enter_name_")[1];
-        ctx.session.step = "name_input";
-        ctx.session.targetMovieId = movieId;
-        await ctx.reply("Please enter the new movie name:");
+        ctx.session.targetMovieId = movieId; // Store movieId for later use
+        await sendUpdateMessage(
+          ctx,
+          "Please choose an option for the description or enter a new description:",
+          movieId,
+          "description"
+        );
       } else if (callbackData.startsWith("leave_description_")) {
+        await ctx.answerCbQuery();
         const movieId = callbackData.split("leave_description_")[1];
-        const updateMovie = await Movie.findById(movieId);
-        if (!updateMovie) {
-          await ctx.answerCbQuery("Movie not found.", { show_alert: true });
-          delete ctx.session.step;
-          return;
-        }
-
+        const updateMovie = await getMovieById(movieId);
         ctx.session.updateFields.description = updateMovie.caption; // Assuming caption is description
         ctx.session.step = "keywords_input";
-
-        await ctx.reply("Please choose an option for the keywords:", {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "Leave current keywords",
-                  callback_data: `leave_keywords_${movieId}`,
-                },
-              ],
-              [
-                {
-                  text: "Enter new keywords",
-                  callback_data: `enter_keywords_${movieId}`,
-                },
-              ],
-            ],
-          },
-        });
-      } else if (callbackData.startsWith("enter_description_")) {
-        const movieId = callbackData.split("enter_description_")[1];
-        ctx.session.updateStep = "description_input";
-        ctx.session.targetMovieId = movieId;
-        await ctx.reply("Please enter the new description:");
+        await sendUpdateMessage(
+          ctx,
+          "Please choose an option for the keywords or enter new keywords:",
+          movieId,
+          "keywords"
+        );
       } else if (callbackData.startsWith("leave_keywords_")) {
+        await ctx.answerCbQuery();
         const movieId = callbackData.split("leave_keywords_")[1];
-        const updateMovie = await Movie.findById(movieId);
-        if (!updateMovie) {
-          await ctx.answerCbQuery("Movie not found.", { show_alert: true });
-          delete ctx.session.step;
-          return;
-        }
-
+        const updateMovie = await getMovieById(movieId);
         ctx.session.updateFields.keywords = updateMovie.keywords;
-        delete ctx.session.updateStep;
-
-        await ctx.reply("Update complete! Press to save changes:", {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "Save film", callback_data: `save_${movieId}` }],
-            ],
-          },
-        });
-      } else if (callbackData.startsWith("enter_keywords_")) {
-        const movieId = callbackData.split("enter_keywords_")[1];
-        ctx.session.updateStep = "keywords_input";
-        ctx.session.targetMovieId = movieId;
-        await ctx.reply("Please enter the new keywords:");
+        delete ctx.session.step;
+        await sendUpdateMessage(
+          ctx,
+          "Update complete! Press to save changes:",
+          movieId,
+          "save"
+        );
       } else if (callbackData.startsWith("save_")) {
+        await ctx.answerCbQuery();
         const movieId = callbackData.split("save_")[1];
-        const updateMovie = await Movie.findById(movieId);
-        if (!updateMovie || !ctx.session.updateFields) {
-          await ctx.answerCbQuery("Movie not found or update data missing.", {
-            show_alert: true,
-          });
-          delete ctx.session.step;
-          return;
-        }
-
-        // Save film function
+        const updateMovie = await getMovieById(movieId);
         updateMovie.name = ctx.session.updateFields.name || updateMovie.name;
         updateMovie.caption =
           ctx.session.updateFields.description || updateMovie.caption;
@@ -357,71 +276,6 @@ export function handleCallbackQueries(bot) {
         });
         delete ctx.session.step;
         delete ctx.session.updateFields;
-        delete ctx.session.targetMovieId;
-      } else if (
-        ctx.session.updateStep === "name_input" &&
-        ctx.session.targetMovieId
-      ) {
-        const movieId = ctx.session.targetMovieId;
-        ctx.session.updateFields.name = messageText;
-        ctx.session.updateStep = "description";
-        await ctx.reply("Please choose an option for the description:", {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "Leave current description",
-                  callback_data: `leave_description_${movieId}`,
-                },
-              ],
-              [
-                {
-                  text: "Enter new description",
-                  callback_data: `enter_description_${movieId}`,
-                },
-              ],
-            ],
-          },
-        });
-      } else if (
-        ctx.session.updateStep === "description_input" &&
-        ctx.session.targetMovieId
-      ) {
-        const movieId = ctx.session.targetMovieId;
-        ctx.session.updateFields.description = messageText;
-        ctx.session.updateStep = "keywords";
-        await ctx.reply("Please choose an option for the keywords:", {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "Leave current keywords",
-                  callback_data: `leave_keywords_${movieId}`,
-                },
-              ],
-              [
-                {
-                  text: "Enter new keywords",
-                  callback_data: `enter_keywords_${movieId}`,
-                },
-              ],
-            ],
-          },
-        });
-      } else if (
-        ctx.session.updateStep === "keywords_input" &&
-        ctx.session.targetMovieId
-      ) {
-        const movieId = ctx.session.targetMovieId;
-        ctx.session.updateFields.keywords = messageText;
-        delete ctx.session.updateStep;
-        await ctx.reply("Update complete! Press to save changes:", {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "Save film", callback_data: `save_${movieId}` }],
-            ],
-          },
-        });
       }
     } catch (error) {
       console.error("Error handling callback query:", error);

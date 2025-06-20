@@ -13,6 +13,7 @@ import findCurrentSeason from "../series/seasons/find_current.js";
 import saveSeries from "../series/saveSeries.js";
 import saveNewSeason from "../series/seasons/saveSeason.js";
 import info from "../add_new/info.js";
+import { sendUpdateMessage } from "../../utilities/updateFilm.js";
 
 export async function handleTextInput(ctx, bot) {
   const userId = ctx.from.id;
@@ -71,61 +72,36 @@ export async function handleTextInput(ctx, bot) {
         ctxData.updateFields.name = messageText;
         ctxData.step = "description_input";
         const movieId = ctxData.targetMovieId;
-        await ctx.reply("Please choose an option for the description:", {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "Leave current description",
-                  callback_data: `leave_description_${movieId}`,
-                },
-              ],
-              [
-                {
-                  text: "Enter new description",
-                  callback_data: `enter_description_${movieId}`,
-                },
-              ],
-            ],
-          },
-        });
+        await sendUpdateMessage(
+          ctx,
+          "Please choose an option for the description or enter a new description:",
+          movieId,
+          "description"
+        );
         break;
       case "description_input":
         if (!ctxData.updateFields) ctxData.updateFields = {};
         ctxData.updateFields.description = messageText;
         ctxData.step = "keywords_input";
         const movieIdDesc = ctxData.targetMovieId;
-        await ctx.reply("Please choose an option for the keywords:", {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: "Leave current keywords",
-                  callback_data: `leave_keywords_${movieIdDesc}`,
-                },
-              ],
-              [
-                {
-                  text: "Enter new keywords",
-                  callback_data: `enter_keywords_${movieIdDesc}`,
-                },
-              ],
-            ],
-          },
-        });
+        await sendUpdateMessage(
+          ctx,
+          "Please choose an option for the keywords or enter new keywords:",
+          movieIdDesc,
+          "keywords"
+        );
         break;
       case "keywords_input":
         if (!ctxData.updateFields) ctxData.updateFields = {};
         ctxData.updateFields.keywords = messageText;
         delete ctxData.step;
         const movieIdKey = ctxData.targetMovieId;
-        await ctx.reply("Update complete! Press to save changes:", {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "Save film", callback_data: `save_${movieIdKey}` }],
-            ],
-          },
-        });
+        await sendUpdateMessage(
+          ctx,
+          "Update complete! Press to save changes:",
+          movieIdKey,
+          "save"
+        );
         break;
     }
   } catch (error) {
