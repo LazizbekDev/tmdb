@@ -15,10 +15,28 @@ export function getUpdateKeyboard(movieId, step) {
       { text: "Leave current name", callback_data: `leave_name_${movieId}` },
     ],
     description: [
-      { text: "Leave current description", callback_data: `leave_description_${movieId}` },
+      {
+        text: "Leave current description",
+        callback_data: `leave_description_${movieId}`,
+      },
+    ],
+    film: [
+      {
+        text: "Leave current film",
+        callback_data: `leave_film_${movieId}`,
+      },
+    ],
+    teaser: [
+      {
+        text: "Leave current teaser",
+        callback_data: `leave_teaser_${movieId}`,
+      },
     ],
     keywords: [
-      { text: "Leave current keywords", callback_data: `leave_keywords_${movieId}` },
+      {
+        text: "Leave current keywords",
+        callback_data: `leave_keywords_${movieId}`,
+      },
     ],
     save: [{ text: "Save film", callback_data: `save_${movieId}` }],
   };

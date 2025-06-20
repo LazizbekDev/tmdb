@@ -241,10 +241,36 @@ export function handleCallbackQueries(bot) {
         const movieId = callbackData.split("leave_description_")[1];
         const updateMovie = await getMovieById(movieId);
         ctx.session.updateFields.description = updateMovie.caption; // Assuming caption is description
-        ctx.session.step = "keywords_input";
+        ctx.session.step = "update_film";
         await sendUpdateMessage(
           ctx,
-          "Please choose an option for the keywords or enter new keywords:",
+          "Please choose an option for the film or send new Film:",
+          movieId,
+          "film"
+        );
+      } else if (callbackData.startsWith("leave_film_")) {
+        await ctx.answerCbQuery();
+        const movieId = callbackData.split("leave_film_")[1];
+        const updateMovie = await getMovieById(movieId);
+        ctx.session.updateFields.movieUrl = updateMovie.movieUrl;
+        ctx.session.step = "update_teaser";
+        ctx.session.targetMovieId = movieId;
+        await sendUpdateMessage(
+          ctx,
+          "Please choose an option for the Film or send new film to update",
+          movieId,
+          "teaser"
+        );
+      } else if (callbackData.startsWith("leave_teaser_")) {
+        await ctx.answerCbQuery();
+        const movieId = callbackData.split("leave_teaser_")[1];
+        const updateMovie = await getMovieById(movieId);
+        ctx.session.updateFields.teaser = updateMovie.teaser;
+        ctx.session.step = "keywords_input";
+        ctx.session.targetMovieId = movieId;
+        await sendUpdateMessage(
+          ctx,
+          "Please choose an option for the teaser or send new teaser video to update:",
           movieId,
           "keywords"
         );
@@ -267,6 +293,12 @@ export function handleCallbackQueries(bot) {
         updateMovie.name = ctx.session.updateFields.name || updateMovie.name;
         updateMovie.caption =
           ctx.session.updateFields.description || updateMovie.caption;
+        updateMovie.movieUrl =
+          ctx.session.updateFields.videoFileId || updateMovie.movieUrl;
+        updateMovie.fileType = ctx.session.updateFields.fileType || updateMovie.fileType;
+        updateMovie.size = ctx.session.updateFields.movieSize || updateMovie.size;
+        updateMovie.duration=ctx.session.updateFields.duration || updateMovie.duration;
+        updateMovie.teaser = ctx.session.updateFields.teaser || updateMovie.teaser;
         updateMovie.keywords =
           ctx.session.updateFields.keywords || updateMovie.keywords;
         await updateMovie.save();
