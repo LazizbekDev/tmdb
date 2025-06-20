@@ -6,8 +6,8 @@ import { extractGenres, getRandomContent } from "../utilities/utilities.js";
 
 export const suggestMovie = async (bot, userId) => {
   try {
-    const user = await User.findOne({ telegramId: userId });
-    if (!user) return;
+    let user = await User.findOne({ telegramId: userId });
+    if (!user || user.inActive) return;
 
     const accessedIds = user.accessedMovies || [];
     const suggestedIds = user.suggestedMovies || [];
@@ -39,7 +39,6 @@ export const suggestMovie = async (bot, userId) => {
 
       if (movie) content = { type: "movie", data: movie };
 
-      // Agar film topilmasa, serialdan izlaymiz
       if (!content) {
         const series = await SeriesModel.findOne({
           _id: { $nin: [...suggestedIds, ...accessedIds] },
@@ -50,22 +49,21 @@ export const suggestMovie = async (bot, userId) => {
       }
     }
 
-    // Agar content topilmasa (yangi user yoki tag topilmadi) — random fallback
     if (!content) {
       content = await getRandomContent([...suggestedIds, ...accessedIds]);
-      if (!content) return; // umuman content yo‘q bo‘lsa
+      if (!content) return;
     }
 
     const item = content.data;
     const genres = (
       sortedGenres.length ? sortedGenres : extractGenres(item.keywords)
     )
-      .slice(0, 5) // faqat eng ko‘p 5 tasini
+      .slice(0, 5)
       .map((g) => `#${g}`)
       .join(" ");
     const label =
       content.type === "series" ? "🎬 Suggested Series" : "🎥 Suggested Movie";
-
+    
     await bot.telegram.sendMessage(
       userId,
       `${label}: <b>${item.name}</b>\n\n${item.caption}\n\n🎭 <b>Your type:</b> ${genres}`,
@@ -93,5 +91,12 @@ export const suggestMovie = async (bot, userId) => {
   } catch (error) {
     await adminNotifier(bot, error, null, "suggestMovie");
     console.error("Error suggesting movie:", error);
+    if (error.code === 403) { // Forbidden - bot blocklangan
+      const user = await User.findOne({ telegramId: userId });
+      if (user) {
+        user.inActive = true;
+        await user.save();
+      }
+    }
   }
 };
