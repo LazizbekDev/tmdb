@@ -84,7 +84,7 @@ export const suggestMovie = async (bot, userId) => {
               },
               {
                 text: "🍿 Watch Now",
-                url: `https:// the bot name?start=${item._id}`,
+                url: `https://${process.env.BOT_USERNAME}?start=${item._id}`,
               },
             ],
           ],
