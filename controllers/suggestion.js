@@ -7,7 +7,13 @@ import { extractGenres, getRandomContent } from "../utilities/utilities.js";
 export const suggestMovie = async (bot, userId) => {
   try {
     let user = await User.findOne({ telegramId: userId });
-    if (!user || !user.inActive) return;
+    if (!user) return;
+    
+    // Agar foydalanuvchi inActive bo'lsa, tavsiya yuborilmaydi
+    if (user.inActive) {
+      console.log(`🚫 Foydalanuvchi ${userId} inActive holatda, tavsiya yuborilmaydi`);
+      return;
+    }
 
     const accessedIds = user.accessedMovies || [];
     const suggestedIds = user.suggestedMovies || [];
@@ -78,7 +84,7 @@ export const suggestMovie = async (bot, userId) => {
               },
               {
                 text: "🍿 Watch Now",
-                url: `https://t.me/${process.env.BOT_USERNAME}?start=${item._id}`,
+                url: `https:// the bot name?start=${item._id}`,
               },
             ],
           ],
