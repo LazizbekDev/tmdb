@@ -7,7 +7,7 @@ import { extractGenres, getRandomContent } from "../utilities/utilities.js";
 export const suggestMovie = async (bot, userId) => {
   try {
     let user = await User.findOne({ telegramId: userId });
-    if (!user || user.inActive) return;
+    if (!user || !user.inActive) return;
 
     const accessedIds = user.accessedMovies || [];
     const suggestedIds = user.suggestedMovies || [];
