@@ -22,11 +22,7 @@ export const checkUserMembership = async (userId) => {
 };
 
 export const createUserLink = (user) => {
-    if (user.username) {
-        return `https://t.me/${user.username}`;
-    } else {
-        return `tg://user?id=${user.id}`;
-    }
+    return `tg://user?id=${user.id}`;
 };
 
 export const startMessage = async (ctx) => {

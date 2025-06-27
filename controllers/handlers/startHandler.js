@@ -22,6 +22,7 @@ export async function handleStart(ctx) {
         firstName: userFirstName,
         username: userUsername,
         accessCount: 0,
+        inActive: false,
         createdAt: new Date(),
       });
       await user.save();
