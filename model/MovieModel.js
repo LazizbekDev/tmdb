@@ -13,8 +13,6 @@ const movieSchema = new mongoose.Schema({
   duration: { type: String },
   views: { type: Number, default: 0 },
   movieUrl: { type: String },
-  filmpath: { type: String, required: false },
-  teaserpath: { type: String, required: false },
   accessedBy: { type: [String], default: []}
 });
 

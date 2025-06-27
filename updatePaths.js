@@ -1,109 +1,55 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import axios from "axios";
-import path from "path";
-import Movies from "./model/MovieModel.js";
-import Series from "./model/SeriesModel.js";
-import { getExtension } from "./utilities/utilities.js";
 
 dotenv.config();
 
-const getMimeTypeFromUrl = async (fileUrl) => {
+const removeTeaserPaths = async () => {
   try {
-    const res = await axios.head(fileUrl);
-    return res.headers["content-type"];
-  } catch (e) {
-    console.log("❌ MIME aniqlanmadi:", e.message);
-    return null;
-  }
-};
-
-const getExtensionSmart = async (fileUrl, filePath, fileType) => {
-  if (fileType) return getExtension(fileType);
-  if (filePath && filePath.includes(".")) {
-    return path.extname(filePath).replace(".", "");
-  }
-  const mime = await getMimeTypeFromUrl(fileUrl);
-  return getExtension(mime);
-};
-
-const getPath = async (fileId, label) => {
-  if (!fileId || typeof fileId !== "string" || fileId.trim().length < 10) {
-    console.log(`❌ ${label} file_id noto‘g‘ri:`, fileId);
-    return { url: null, filePath: null };
-  }
-
-  try {
-    const res = await axios.get(
-      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getFile?file_id=${fileId}`
-    );
-
-    if (res.data.ok && res.data.result?.file_path) {
-      const filePath = res.data.result.file_path;
-      const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${filePath}`;
-      return { url: fileUrl, filePath };
-    } else {
-      console.log(`⚠️ ${label} uchun file_path yo‘q:`, res.data);
-    }
-  } catch (err) {
-    console.log(`❌ ${label} uchun xatolik:`, err.message);
-  }
-
-  return { url: null, filePath: null };
-};
-
-const updateDatabase = async () => {
-  try {
-    await mongoose.connect(process.env.DB);
+    // MongoDB bilan ulanish
+    await mongoose.connect(process.env.DB, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
     console.log("✅ DB bilan ulanish o‘rnatildi.");
 
-    const movies = await Movies.find({});
-    for (const movie of movies) {
-      const updatedFields = {};
+    // MongoDB native collection dan foydalanish
+    const moviesCollection = mongoose.connection.db.collection("movies");
 
-      if (movie.movieUrl && !movie.filmpath) {
-        const { url, filePath } = await getPath(movie.movieUrl, "movieUrl");
-        if (url) {
-          updatedFields.filmpath = url;
-          updatedFields.filmext = await getExtensionSmart(url, filePath, movie.fileType);
-        }
-      }
+    // teaserpath maydoni mavjud hujjatlarni tekshirish
+    const movieTeaserCheck = await moviesCollection.countDocuments({ teaserpath: { $exists: true } });
+    console.log(`🔍 [Movies] ${movieTeaserCheck} ta hujjatda teaserpath maydoni mavjud`);
 
-      if (movie.teaser && !movie.teaserpath) {
-        const { url, filePath } = await getPath(movie.teaser, "teaser");
-        if (url) {
-          updatedFields.teaserpath = url;
-          updatedFields.teaserext = await getExtensionSmart(url, filePath, null); // mostly mp4
-        }
-      }
+    // teaserpath va teaserext maydonlarini o'chirish
+    const movieUpdateResult = await moviesCollection.updateMany(
+      { teaserpath: { $exists: true } },
+      { $unset: { teaserpath: "", teaserext: "" } }
+    );
+    console.log(`🎬 [Movies] ${movieUpdateResult.matchedCount || 0} ta hujjat topildi, ${movieUpdateResult.modifiedCount || 0} ta hujjatdan teaserpath va teaserext o‘chirildi`);
 
-      if (Object.keys(updatedFields).length > 0) {
-        await Movies.updateOne({ _id: movie._id }, { $set: updatedFields });
-        console.log(`🎬 [Movie] ${movie.name} yangilandi`);
-      }
+    // Qayta tekshirish
+    const movieTeaserRecheck = await moviesCollection.countDocuments({ teaserpath: { $exists: true } });
+    if (movieTeaserRecheck > 0) {
+      console.log(`⚠️ [Movies] ${movieTeaserRecheck} ta hujjatda teaserpath hali mavjud`);
+      // Qolgan hujjatlarning namunalarini log qilish
+      const remainingDocs = await moviesCollection.find(
+        { teaserpath: { $exists: true } },
+        { projection: { _id: 1, teaserpath: 1, teaserext: 1 } }
+      ).limit(5).toArray();
+      console.log("📋 Qolgan hujjatlar namunalari:", JSON.stringify(remainingDocs, null, 2));
+    } else {
+      console.log(`✅ [Movies] teaserpath va teaserext maydonlari to‘liq o‘chirilgan`);
     }
 
-    const seriesList = await Series.find({});
-    for (const series of seriesList) {
-      if (series.teaser ) {
-        const { url, filePath } = await getPath(series.teaser, "series teaser");
-        if (url) {
-          const teaserext = await getExtensionSmart(url, filePath, null);
-          await Series.updateOne(
-            { _id: series._id },
-            { $set: { teaserpath: url, teaserext } }
-          );
-          console.log(`📺 [Series] ${series.name} yangilandi`);
-        }
-      }
-    }
-
-    console.log("🎉 Barcha hujjatlar yangilandi.");
-    mongoose.disconnect();
+    console.log("🎉 Yangilanish jarayoni yakunlandi.");
   } catch (err) {
-    console.error("❌ Umumiy xatolik:", err.message);
-    mongoose.disconnect();
+    console.error("❌ Xatolik yuz berdi:", err.message);
+    console.error("Xato tafsilotlari:", err);
+  } finally {
+    // Ulanishni yopish
+    await mongoose.disconnect();
+    console.log("🔌 MongoDB ulanishi yopildi.");
   }
 };
 
-updateDatabase();
+// Skriptni ishga tushirish
+removeTeaserPaths();

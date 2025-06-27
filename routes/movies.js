@@ -82,7 +82,7 @@ export default function setupRoutes(app) {
   app.put("/api/movies/:id", checkAdmin, async (req, res) => {
     try {
       console.log("PUT /api/movies/:id payload:", req.body); // Log incoming payload
-      const { name, caption, movieUrl, keywords, fileType, teaser, teaserpath, size, duration, views, accessedBy } = req.body;
+      const { name, caption, movieUrl, keywords, fileType, teaser, size, duration, views, accessedBy } = req.body;
 
       // Validate required fields
       if (!name || !caption || !movieUrl || !fileType) {
@@ -95,7 +95,7 @@ export default function setupRoutes(app) {
         movieUrl,
         keywords: Array.isArray(keywords) ? keywords : [],
         fileType,
-        teaser: teaser || teaserpath || '', // Use teaserpath if teaser is empty
+        teaser: teaser || '',
         size: size || '',
         duration: duration || '',
         views: parseInt(views) || 0,

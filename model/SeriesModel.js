@@ -8,7 +8,6 @@ const SeriesSchema = new mongoose.Schema({
   keywords: [String],
   cleanedKeywords: [{ type: String, index: true }], // Qo‘shilgan tozalangan kalit so‘zlar
   teaser: String,
-  teaserpath: { type: String, required: false },
   series: [
     {
       seasonNumber: String,

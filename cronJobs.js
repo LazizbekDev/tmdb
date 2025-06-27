@@ -1,5 +1,4 @@
 import cron from "node-cron";
-import axios from "axios";
 import SuggestionLog from "./model/suggestion_log.js";
 import User from "./model/User.js";
 import { suggestMovie } from "./controllers/suggestion.js";
@@ -52,22 +51,22 @@ export function setupCronJobs(bot) {
   });
 
   // Har 7 minutda health check
-  cron.schedule("*/7 * * * *", async () => {
-    try {
-      if (!process.env.URL) {
-        console.warn("⚠️ No URL set in .env file for health check");
-        return;
-      }
-      const response = await axios.get(process.env.URL);
-      console.log(
-        `[${new Date().toLocaleString()}] Health Check:`,
-        response.data
-      );
-    } catch (error) {
-      console.error(
-        `[${new Date().toLocaleString()}] Bot Health Check Failed!`,
-        error.message
-      );
-    }
-  });
+  // cron.schedule("*/7 * * * *", async () => {
+  //   try {
+  //     if (!process.env.URL) {
+  //       console.warn("⚠️ No URL set in .env file for health check");
+  //       return;
+  //     }
+  //     const response = await axios.get(process.env.URL);
+  //     console.log(
+  //       `[${new Date().toLocaleString()}] Health Check:`,
+  //       response.data
+  //     );
+  //   } catch (error) {
+  //     console.error(
+  //       `[${new Date().toLocaleString()}] Bot Health Check Failed!`,
+  //       error.message
+  //     );
+  //   }
+  // });
 }
