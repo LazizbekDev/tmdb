@@ -308,6 +308,29 @@ export function handleCallbackQueries(bot) {
         });
         delete ctx.session.step;
         delete ctx.session.updateFields;
+      } else if (callbackData.startsWith("save_later_")) {
+        const movieId = callbackData.split("save_later_")[1];
+        const movie = await Movie.findById(movieId);
+        if (!movie) {
+          await ctx.answerCbQuery("Movie not found.");
+          return;
+        }
+        const userId = ctx.from.id;
+        const user = await User.findOne({ telegramId: userId });
+        if (!user) {
+          await ctx.answerCbQuery("User not found.");
+          return;
+        }
+        if (!user.savedMovies) {
+          user.savedMovies = [];
+        }
+        if (!user.savedMovies.includes(movieId)) {
+          user.savedMovies.push(movieId);
+          await user.save();
+          await ctx.answerCbQuery("Movie saved for later viewing.");
+        } else {
+          await ctx.answerCbQuery("This movie is already saved.");
+        }
       }
     } catch (error) {
       console.error("Error handling callback query:", error);

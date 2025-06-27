@@ -57,6 +57,50 @@ export function handleCommands(bot) {
     }
   });
 
+  bot.command("watch_list", async (ctx) => {
+    try {
+      await ensureDbConnection();
+
+      const userId = ctx.from.id.toString();
+      const user = await User.findOne({ telegramId: userId });
+      if (!user) {
+        return ctx.reply("Sizda hech qanday saqlangan filmlar yoki seriallar yo‘q.");
+      }
+      const savedMovies = user.savedMovies || [];
+      if (savedMovies.length === 0) { 
+        return ctx.reply("Sizda hech qanday saqlangan filmlar yoki seriallar yo‘q.");
+      }
+      const limit = 10;
+      const page = parseInt(ctx.match?.[1] || 1);
+      const skip = (page - 1) * limit;
+      const movies = await Movie.find({ _id: { $in: savedMovies } })
+        .sort({ _id: -1 })
+        .skip(skip)
+        .limit(limit);
+      const series = await Series.find({ _id: { $in: savedMovies } })
+        .sort({ _id: -1 })
+        .skip(skip)
+        .limit(limit);
+      const moviesCount = await Movie.countDocuments({ _id: { $in: savedMovies } });
+      const seriesCount = await Series.countDocuments({ _id: { $in: savedMovies } });
+      if (moviesCount === 0 && seriesCount === 0) {
+        return ctx.reply("Sizda hech qanday saqlangan filmlar yoki seriallar yo‘q.");
+      }
+      const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
+      const header = page === 1 ? generateHeader(moviesCount, seriesCount) : "";
+      const content = header + formatList(movies, series, page, limit);
+      const paginationButtons = generatePaginationButtons(page, totalPages, "watch_list_");
+      await ctx.reply(content || "No content available for this page.", {
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: paginationButtons },
+      });
+    } catch (error) {
+      console.error("Error in /watch_list command:", error);
+      await ctx.reply("An error occurred while processing your request.");
+      await adminNotifier(bot, error, ctx, "Watch List command error");
+    }
+  });
+
   bot.command("show", async (ctx) => {
     try {
       if (ctx.from.id !== parseInt(process.env.ADMIN_ID)) {

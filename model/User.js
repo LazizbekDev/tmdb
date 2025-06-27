@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema({
         default: false,
     },
     inActive: { type: Boolean, default: false },
+    savedMovies: {
+        type: [String],
+        default: [], // IDs of movies the user has saved
+    },
 });
 
 const User = mongoose.model("User", userSchema);

@@ -87,7 +87,7 @@ export const suggestMovie = async (bot, userId) => {
       if (!content) {
         await bot.telegram.sendMessage(
           userId,
-          "😔 Hozircha siz uchun yangi tavsiya topa olmadik. Keyinroq qayta urinib ko‘ring!",
+          "😔 We couldn't find new films for you. Try again later!",
           { parse_mode: "HTML" }
         );
         return;
@@ -127,7 +127,7 @@ export const suggestMovie = async (bot, userId) => {
             ],
             [
               {
-                text: "📌 Keyinroq ko‘rish",
+                text: "📌 Watch later",
                 callback_data: `save_later_${item._id}`,
               },
             ],
