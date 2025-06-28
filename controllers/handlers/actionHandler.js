@@ -3,9 +3,9 @@ import Series from "../../model/SeriesModel.js";
 import User from "../../model/User.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { checkUserMembership } from "../start.js";
-import formatList, { generatePaginationButtons } from "../list/formatList.js";
 import add from "./../add_new/main.js";
-import { getPaginatedData } from "../../utilities/pagination.js";
+import caption from "../../utilities/caption.js";
+import { handlePagination } from "../../utilities/utilities.js";
 // import info from "../add_new/info.js";
 
 export function handleActionButtons(bot) {
@@ -18,36 +18,8 @@ export function handleActionButtons(bot) {
   });
 
   bot.action(/list_page_(\d+)/, async (ctx) => {
-    try {
-      const page = parseInt(ctx.match[1], 10);
-      const limit = 10;
-
-      const [moviesResult, seriesResult] = await Promise.all([
-        getPaginatedData(Movie, page, limit),
-        getPaginatedData(Series, page, limit),
-      ]);
-
-      const totalPages = Math.max(
-        moviesResult.totalPages,
-        seriesResult.totalPages
-      );
-      const content = formatList(
-        moviesResult.data,
-        seriesResult.data,
-        page,
-        limit
-      );
-      const paginationButtons = generatePaginationButtons(page, totalPages);
-
-      await ctx.editMessageText(content, {
-        parse_mode: "HTML",
-        reply_markup: { inline_keyboard: paginationButtons },
-      });
-    } catch (error) {
-      console.error("Error in pagination:", error);
-      await ctx.reply("An error occurred while processing your request.");
-      await adminNotifier(bot, error, ctx, "Pagination error");
-    }
+    const page = parseInt(ctx.match[1], 10);
+    await handlePagination(ctx, bot, page, Movie, Series, 10);
   });
 
   bot.action("send_movie_request", async (ctx) => {

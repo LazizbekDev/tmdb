@@ -98,6 +98,12 @@ export async function handleStart(ctx) {
                         callback_data: `update_${movie._id}`,
                       },
                     ],
+                    [
+                      {
+                        text: "📌 add to Watch List",
+                        callback_data: `save_later_${movie._id}`,
+                      },
+                    ],
                     [{ text: "Search", switch_inline_query_current_chat: "" }],
                   ]
                 : [

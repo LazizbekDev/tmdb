@@ -10,8 +10,6 @@ export async function setupBot() {
   // 💾 Session middlewareni ulash
   await applySession(bot); // session birinchi bo‘lishi kerak!
 
-  // 🔁 User state (agar kerak bo‘lsa, lekin endi ctx.session bo'ladi)
-
   // ⚙️ Harakatlar
   setupActions(bot);
 

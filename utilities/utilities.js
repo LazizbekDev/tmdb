@@ -1,5 +1,7 @@
+import formatList, { generatePaginationButtons } from "../controllers/list/formatList.js";
 import MovieModel from "../model/MovieModel.js";
 import SeriesModel from "../model/SeriesModel.js";
+import { getPaginatedData } from "./pagination.js";
 
 // Hashtaglardan toza genre'larni chiqarish
 export function extractGenres(keywords) {
@@ -58,4 +60,33 @@ export const getExtension = (mimeType = "") => {
     "audio/ogg": "ogg",
   };
   return map[mimeType.toLowerCase()] || "mp4"; // default
+};
+
+export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Model2 = SeriesModel, limit = 10) => {
+  try {
+    // Paginated ma'lumotlarni olish
+    const [result1, result2] = await Promise.all([
+      getPaginatedData(Model1, page, limit),
+      getPaginatedData(Model2, page, limit),
+    ]);
+
+    // Umumiy sahifalar sonini hisoblash
+    const totalPages = Math.max(result1.totalPages, result2.totalPages);
+
+    // Kontentni formatlash
+    const content = formatList(result1.data, result2.data, page, limit);
+
+    // Pagination tugmalarini yaratish
+    const paginationButtons = generatePaginationButtons(page, totalPages);
+
+    // Xabarni tahrirlash yoki yuborish
+    await ctx.editMessageText(content, {
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: paginationButtons },
+    });
+  } catch (error) {
+    console.error("Error in pagination:", error);
+    await ctx.reply("An error occurred while processing your request.");
+    await adminNotifier(bot, error, ctx, "Pagination error");
+  }
 };
