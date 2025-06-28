@@ -22,6 +22,46 @@ export function handleActionButtons(bot) {
     await handlePagination(ctx, bot, page, Movie, Series, 10);
   });
 
+  bot.action(/search_list_(\d+)/, async (ctx) => {
+    try {
+      await ctx.answerCbQuery("Searching...");
+      const page = parseInt(ctx.match[1], 10); // 10 asosida parse qilish (5 noto‘g‘ri edi)
+      const cleanedText = ctx.session.query;
+
+      if (!cleanedText) {
+        console.log("🚫 Sessiyada qidiruv so‘zi topilmadi");
+        await ctx.reply(
+          "Search term not found in session. Please try again."
+        );
+        return;
+      }
+
+      console.log(`🔍 Search list page: ${cleanedText}`);
+
+      const query = {
+        $or: [
+          { cleanedName: { $regex: cleanedText, $options: "i" } },
+          { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
+        ],
+      };
+
+      await handlePagination(
+        ctx,
+        bot,
+        page,
+        Movie,
+        Series,
+        10,
+        query,
+        "search_list_"
+      );
+    } catch (error) {
+      console.error("🔍 Search list error:", error);
+      await ctx.reply("Something went wrong while processing your search.");
+      await adminNotifier(bot, error, ctx, "Search list error");
+    }
+  });
+
   bot.action("send_movie_request", async (ctx) => {
     try {
       await ctx.answerCbQuery("We will post it to channel");

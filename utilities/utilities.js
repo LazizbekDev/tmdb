@@ -1,6 +1,7 @@
 import formatList, { generatePaginationButtons } from "../controllers/list/formatList.js";
 import MovieModel from "../model/MovieModel.js";
 import SeriesModel from "../model/SeriesModel.js";
+import { adminNotifier } from "./admin_notifier.js";
 import { getPaginatedData } from "./pagination.js";
 
 // Hashtaglardan toza genre'larni chiqarish
@@ -62,13 +63,22 @@ export const getExtension = (mimeType = "") => {
   return map[mimeType.toLowerCase()] || "mp4"; // default
 };
 
-export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Model2 = SeriesModel, limit = 10) => {
+export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Model2 = SeriesModel, limit = 10, query = {}) => {
   try {
     // Paginated ma'lumotlarni olish
     const [result1, result2] = await Promise.all([
-      getPaginatedData(Model1, page, limit),
-      getPaginatedData(Model2, page, limit),
+      getPaginatedData(Model1, page, limit, query),
+      getPaginatedData(Model2, page, limit, query),
     ]);
+
+    // Natijalarni log qilish
+    console.log(`📄 [Pagination] Model1: ${result1.data.length} ta, Model2: ${result2.data.length} ta`);
+
+    // Agar hech qanday ma'lumot topilmasa
+    if (result1.data.length === 0 && result2.data.length === 0) {
+      await ctx.reply("😔 No results appeared!");
+      return;
+    }
 
     // Umumiy sahifalar sonini hisoblash
     const totalPages = Math.max(result1.totalPages, result2.totalPages);
@@ -77,13 +87,19 @@ export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Mode
     const content = formatList(result1.data, result2.data, page, limit);
 
     // Pagination tugmalarini yaratish
-    const paginationButtons = generatePaginationButtons(page, totalPages);
+    const paginationButtons = generatePaginationButtons(page, totalPages, "search_list_");
 
     // Xabarni tahrirlash yoki yuborish
-    await ctx.editMessageText(content, {
-      parse_mode: "HTML",
-      reply_markup: { inline_keyboard: paginationButtons },
-    });
+    if (ctx.update.callback_query) {
+      await ctx.editMessageText(content, {
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: paginationButtons },
+      });
+    } else {
+      await ctx.replyWithHTML(content, {
+        reply_markup: { inline_keyboard: paginationButtons },
+      });
+    }
   } catch (error) {
     console.error("Error in pagination:", error);
     await ctx.reply("An error occurred while processing your request.");

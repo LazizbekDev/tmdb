@@ -2,11 +2,7 @@ import UserSubmission from "../../model/FilmRequest.js";
 import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
-import { cleanText } from "../../utilities/utilities.js";
-import formatList, {
-  generateHeader,
-  generatePaginationButtons,
-} from "../list/formatList.js";
+import { cleanText, handlePagination } from "../../utilities/utilities.js";
 import toAdmin from "../feedback/toAdmin.js";
 import title from "../series/title.js";
 import findCurrentSeason from "../series/seasons/find_current.js";
@@ -114,32 +110,34 @@ export async function handleTextInput(ctx, bot) {
 async function searchAndReply(ctx, messageText, bot) {
   try {
     const page = 1;
+    const limit = 10;
     const cleanedText = cleanText(messageText);
+    ctx.session.query = cleanedText; // Sessiyaga saqlash
+
+    // Qidiruv so'rovini log qilish
+
+    // Qidiruv so'rovi
+    const query = {
+      $or: [
+        { cleanedName: { $regex: cleanedText, $options: "i" } },
+        { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
+      ],
+    };
+
+
     const [movies, seriesList] = await Promise.all([
-      Movie.find({
-        $or: [
-          { cleanedName: { $regex: cleanedText, $options: "i" } },
-          { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
-        ],
-      }),
-      Series.find({
-        $or: [
-          { cleanedName: { $regex: cleanedText, $options: "i" } },
-          { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
-        ],
-      }),
+      Movie.find(query).select("name caption keywords").lean(),
+      Series.find(query).select("name caption keywords").lean(),
     ]);
 
-    const totalPages = Math.ceil(
-      Math.max(movies.length, seriesList.length) / 30
-    );
-    const header = generateHeader(movies.length, seriesList.length);
-    const content = formatList(movies, seriesList, page, 30);
-    const buttons = generatePaginationButtons(page, totalPages);
+    // Agar hech narsa topilmasa
+    if (movies.length === 0 && seriesList.length === 0) {
+      await ctx.reply("😔 There's no films found!");
+      return;
+    }
 
-    await ctx.replyWithHTML(`${header}${content}`, {
-      reply_markup: { inline_keyboard: buttons },
-    });
+    // handlePagination funksiyasidan foydalanish
+    await handlePagination(ctx, bot, page, Movie, Series, limit, query);
   } catch (error) {
     console.error("🔍 Search error:", error);
     await ctx.reply("Something went wrong while searching. Try again later.");
