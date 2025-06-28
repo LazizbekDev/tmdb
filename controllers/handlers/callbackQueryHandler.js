@@ -1,5 +1,6 @@
 import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
+import User from "../../model/User.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { getMovieById, sendUpdateMessage } from "../../utilities/updateFilm.js";
 import { extractGenres } from "../../utilities/utilities.js";
@@ -169,6 +170,12 @@ export function handleCallbackQueries(bot) {
                     url: `https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}`,
                   },
                 ],
+                [
+                  {
+                    text: "📌 add to Watch List",
+                    callback_data: `save_later_${movie._id}`,
+                  },
+                ],
               ],
             },
           }
@@ -286,31 +293,12 @@ export function handleCallbackQueries(bot) {
           movieId,
           "save"
         );
-      } else if (callbackData.startsWith("save_")) {
-        await ctx.answerCbQuery();
-        const movieId = callbackData.split("save_")[1];
-        const updateMovie = await getMovieById(movieId);
-        updateMovie.name = ctx.session.updateFields.name || updateMovie.name;
-        updateMovie.caption =
-          ctx.session.updateFields.description || updateMovie.caption;
-        updateMovie.movieUrl =
-          ctx.session.updateFields.videoFileId || updateMovie.movieUrl;
-        updateMovie.fileType = ctx.session.updateFields.fileType || updateMovie.fileType;
-        updateMovie.size = ctx.session.updateFields.movieSize || updateMovie.size;
-        updateMovie.duration=ctx.session.updateFields.duration || updateMovie.duration;
-        updateMovie.teaser = ctx.session.updateFields.teaser || updateMovie.teaser;
-        updateMovie.keywords =
-          ctx.session.updateFields.keywords || updateMovie.keywords;
-        await updateMovie.save();
-        await ctx.reply(`Movie "${updateMovie.name}" updated successfully!`, {
-          parse_mode: "HTML",
-          reply_markup: { remove_keyboard: true },
-        });
-        delete ctx.session.step;
-        delete ctx.session.updateFields;
       } else if (callbackData.startsWith("save_later_")) {
         const movieId = callbackData.split("save_later_")[1];
-        const movie = await Movie.findById(movieId);
+        console.log("Saving movie for later viewing", movieId);
+
+        const movie =
+          (await Movie.findById(movieId)) || (await Series.findById(movieId));
         if (!movie) {
           await ctx.answerCbQuery("Movie not found.");
           return;
@@ -331,6 +319,32 @@ export function handleCallbackQueries(bot) {
         } else {
           await ctx.answerCbQuery("This movie is already saved.");
         }
+      } else if (callbackData.startsWith("save_")) {
+        await ctx.answerCbQuery();
+        const movieId = callbackData.split("save_")[1];
+        const updateMovie = await getMovieById(movieId);
+        updateMovie.name = ctx.session.updateFields.name || updateMovie.name;
+        updateMovie.caption =
+          ctx.session.updateFields.description || updateMovie.caption;
+        updateMovie.movieUrl =
+          ctx.session.updateFields.videoFileId || updateMovie.movieUrl;
+        updateMovie.fileType =
+          ctx.session.updateFields.fileType || updateMovie.fileType;
+        updateMovie.size =
+          ctx.session.updateFields.movieSize || updateMovie.size;
+        updateMovie.duration =
+          ctx.session.updateFields.duration || updateMovie.duration;
+        updateMovie.teaser =
+          ctx.session.updateFields.teaser || updateMovie.teaser;
+        updateMovie.keywords =
+          ctx.session.updateFields.keywords || updateMovie.keywords;
+        await updateMovie.save();
+        await ctx.reply(`Movie "${updateMovie.name}" updated successfully!`, {
+          parse_mode: "HTML",
+          reply_markup: { remove_keyboard: true },
+        });
+        delete ctx.session.step;
+        delete ctx.session.updateFields;
       }
     } catch (error) {
       console.error("Error handling callback query:", error);

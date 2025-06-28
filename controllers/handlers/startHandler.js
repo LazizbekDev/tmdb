@@ -64,9 +64,13 @@ export async function handleStart(ctx) {
 
           const adminMessage = `
 🔔 <b>Movie Accessed</b>
-▪️ <b>Movie:</b> <a href='https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}'>${movie.name}</a>
+▪️ <b>Movie:</b> <a href='https://t.me/${process.env.BOT_USERNAME}?start=${
+            movie._id
+          }'>${movie.name}</a>
 ▪️ <b>Access Count:</b> ${movie.accessedBy.length}
-▪️ <b>User:</b> <a href='${createUserLink(ctx.message.from)}'>${userFirstName}</a>
+▪️ <b>User:</b> <a href='${createUserLink(
+            ctx.message.from
+          )}'>${userFirstName}</a>
 ▪️ <b>User ID:</b> <code>${userId}</code>
           `;
           await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, {
@@ -85,12 +89,31 @@ export async function handleStart(ctx) {
               ...(isAdmin
                 ? [
                     [
-                      { text: "Delete 🗑", callback_data: `delete_${movie._id}` },
-                      { text: "Update ✏️", callback_data: `update_${movie._id}` }
+                      {
+                        text: "Delete 🗑",
+                        callback_data: `delete_${movie._id}`,
+                      },
+                      {
+                        text: "Update ✏️",
+                        callback_data: `update_${movie._id}`,
+                      },
                     ],
                     [{ text: "Search", switch_inline_query_current_chat: "" }],
                   ]
-                : [[{ text: "Search", switch_inline_query_current_chat: "" }]]),
+                : [
+                    [
+                      {
+                        text: "📌 add to Watch List",
+                        callback_data: `save_later_${movie._id}`,
+                      },
+                    ],
+                    [
+                      {
+                        text: "Search",
+                        switch_inline_query_current_chat: "",
+                      },
+                    ],
+                  ]),
             ],
           },
         });
@@ -161,7 +184,18 @@ export async function handleStart(ctx) {
             parse_mode: "HTML",
             reply_markup: {
               inline_keyboard: [
-                [{ text: "Search", switch_inline_query_current_chat: "" }],
+                [
+                  {
+                    text: "📌 add to Watch List",
+                    callback_data: `save_later_${series._id}`,
+                  },
+                ],
+                [
+                  {
+                    text: "Search",
+                    switch_inline_query_current_chat: "",
+                  },
+                ],
               ],
             },
           }

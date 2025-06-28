@@ -4,6 +4,7 @@ import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { suggestMovie } from "../suggestion.js";
 import formatList, { generateHeader, generatePaginationButtons } from "../list/formatList.js";
 import { connect } from "../../db.js";
+import User from "../../model/User.js";
 
 export function handleCommands(bot) {
   // Verify database connection
@@ -57,7 +58,7 @@ export function handleCommands(bot) {
     }
   });
 
-  bot.command("watch_list", async (ctx) => {
+  bot.command("watchlist", async (ctx) => {
     try {
       await ensureDbConnection();
 
