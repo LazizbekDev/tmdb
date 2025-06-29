@@ -24,6 +24,7 @@ export async function handleStart(ctx) {
         accessCount: 0,
         inActive: false,
         createdAt: new Date(),
+        watchlist: [], // Ensure watchlist is initialized
       });
       await user.save();
     }
@@ -53,8 +54,11 @@ export async function handleStart(ctx) {
       if (movie) {
         const userIdStr = userId.toString();
         const hasAccessedBefore = movie.accessedBy.includes(userIdStr);
-        // Agar ilgari ko‘rgan bo‘lsa va hozir a'zo bo‘lsa => protected content false bo‘lib yuborilsin
         const shouldProtect = !isMember && !hasAccessedBefore;
+
+        // Check if movie is in user's watchlist
+        const isInWatchlist = user.savedMovies.includes(movie._id.toString());
+
         if (!hasAccessedBefore) {
           movie.accessedBy.push(userIdStr);
           movie.views += 1;
@@ -77,9 +81,11 @@ export async function handleStart(ctx) {
             parse_mode: "HTML",
           });
         }
+
         const isAdmin =
           ctx.message.from?.username?.toLowerCase() === process.env.ADMIN;
-        // Video yuborish — har qanday holatda
+
+        // Video yuborish — har q prácticas
         await ctx.replyWithVideo(movie.movieUrl, {
           caption: caption(movie, false),
           parse_mode: "HTML",
@@ -100,8 +106,12 @@ export async function handleStart(ctx) {
                     ],
                     [
                       {
-                        text: "📌 add to Watch List",
-                        callback_data: `save_later_${movie._id}`,
+                        text: isInWatchlist
+                          ? "Remove from Watch List 🗑"
+                          : "📌 Add to Watch List",
+                        callback_data: isInWatchlist
+                          ? `remove_later_${movie._id}`
+                          : `save_later_${movie._id}`,
                       },
                     ],
                     [{ text: "Search", switch_inline_query_current_chat: "" }],
@@ -109,8 +119,12 @@ export async function handleStart(ctx) {
                 : [
                     [
                       {
-                        text: "📌 add to Watch List",
-                        callback_data: `save_later_${movie._id}`,
+                        text: isInWatchlist
+                          ? "Remove from Watch List 🗑"
+                          : "📌 Add to Watch List",
+                        callback_data: isInWatchlist
+                          ? `remove_later_${movie._id}`
+                          : `save_later_${movie._id}`,
                       },
                     ],
                     [
@@ -150,6 +164,9 @@ export async function handleStart(ctx) {
 
       const series = await Series.findById(payload);
       if (series) {
+        // Check if series is in user's watchlist
+        const isInWatchlist = user.savedMovies.includes(series._id.toString());
+
         if (!series.accessedBy?.includes(userId.toString())) {
           series.accessedBy = series.accessedBy || [];
           series.accessedBy.push(userId.toString());
@@ -167,6 +184,7 @@ export async function handleStart(ctx) {
             parse_mode: "HTML",
           });
         }
+
         let totalEpisodes = 0;
         for (const season of series.series.sort(
           (a, b) => a.seasonNumber - b.seasonNumber
@@ -184,6 +202,7 @@ export async function handleStart(ctx) {
             });
           }
         }
+
         ctx.reply(
           `🎬 <b>${series.name}</b>\n📚 Season: <b>${series.series[0].seasonNumber}</b>\n🎞 Total Episodes: <b>${totalEpisodes}</b>\n\nUse /list to explore more or hit the button below to search.`,
           {
@@ -192,8 +211,12 @@ export async function handleStart(ctx) {
               inline_keyboard: [
                 [
                   {
-                    text: "📌 add to Watch List",
-                    callback_data: `save_later_${series._id}`,
+                    text: isInWatchlist
+                      ? "Remove from Watch List 🗑"
+                      : "📌 Add to Watch List",
+                    callback_data: isInWatchlist
+                      ? `remove_later_${series._id}`
+                      : `save_later_${series._id}`,
                   },
                 ],
                 [

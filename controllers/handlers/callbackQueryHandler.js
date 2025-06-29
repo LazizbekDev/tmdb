@@ -12,6 +12,9 @@ import formatList, {
 export function handleCallbackQueries(bot) {
   bot.on("callback_query", async (ctx) => {
     const callbackData = ctx.callbackQuery.data;
+    const userId = ctx.from.id;
+    const messageId = ctx.callbackQuery.message.message_id;
+    const chatId = ctx.callbackQuery.message.chat.id;
 
     try {
       if (callbackData.startsWith("request_")) {
@@ -303,21 +306,77 @@ export function handleCallbackQueries(bot) {
           await ctx.answerCbQuery("Movie not found.");
           return;
         }
-        const userId = ctx.from.id;
+
         const user = await User.findOne({ telegramId: userId });
         if (!user) {
           await ctx.answerCbQuery("User not found.");
           return;
         }
+
         if (!user.savedMovies) {
           user.savedMovies = [];
         }
+
         if (!user.savedMovies.includes(movieId)) {
           user.savedMovies.push(movieId);
           await user.save();
           await ctx.answerCbQuery("Movie saved for later viewing.");
+
+          // Update the button to "Remove from Watch List"
+          await ctx.telegram.editMessageReplyMarkup(chatId, messageId, null, {
+            inline_keyboard: [
+              [
+                {
+                  text: "Remove from Watch List 🗑",
+                  callback_data: `remove_later_${movieId}`,
+                },
+              ],
+              [
+                {
+                  text: "Search",
+                  switch_inline_query_current_chat: "",
+                },
+              ],
+            ],
+          });
         } else {
           await ctx.answerCbQuery("This movie is already saved.");
+        }
+      } else if (callbackData.startsWith("remove_later_")) {
+        const movieId = callbackData.replace("remove_later_", "");
+        const user = await User.findOne({ telegramId: userId });
+
+        if (!user) {
+          await ctx.answerCbQuery("User not found.");
+          return;
+        }
+
+        if (user.savedMovies.includes(movieId)) {
+          await User.updateOne(
+            { telegramId: userId },
+            { $pull: { savedMovies: movieId } }
+          );
+          await ctx.answerCbQuery("Removed from Watch List!");
+
+          // Update the button to "Add to Watch List"
+          await ctx.telegram.editMessageReplyMarkup(chatId, messageId, null, {
+            inline_keyboard: [
+              [
+                {
+                  text: "📌 Add to Watch List",
+                  callback_data: `save_later_${movieId}`,
+                },
+              ],
+              [
+                {
+                  text: "Search",
+                  switch_inline_query_current_chat: "",
+                },
+              ],
+            ],
+          });
+        } else {
+          await ctx.answerCbQuery("This movie is not in your watchlist.");
         }
       } else if (callbackData.startsWith("save_")) {
         await ctx.answerCbQuery();
