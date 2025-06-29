@@ -24,10 +24,9 @@ app.listen(PORT, async () => {
     console.log("✅ MongoDB connected");
 
     const bot = await setupBot();
+    setupCronJobs(bot);
     await bot.launch();
     console.log("🚀 Bot launched");
-
-    setupCronJobs(bot);
   } catch (err) {
     console.error("❌ Server initialization error:", err);
     process.exit(1);
