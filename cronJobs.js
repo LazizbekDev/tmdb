@@ -5,7 +5,7 @@ import { suggestMovie } from "./controllers/suggestion.js";
 
 export function setupCronJobs(bot) {
   // Har 3 kunda film tavsiya qilish
-  cron.schedule("0 12 * * *", async () => {
+  cron.schedule("0 13 * * *", async () => {
     console.log("⏰ Checking if it's time to suggest movies...");
 
     try {
