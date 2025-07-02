@@ -55,6 +55,21 @@ export default function setupRoutes(app) {
     }
   });
 
+  app.get("/recommendations/:id", async (req, res) => {
+    try {
+      const movie = await Movie.findById(req.params.id);
+      if (!movie) return res.status(404).json({ error: "Movie not found" });
+      const recommendations = await Movie.find({
+        _id: { $ne: movie._id },
+        cleanedKeywords: { $in: movie.cleanedKeywords },
+        keywords: { $in: movie.keywords },
+      }).limit(5);
+      res.json(recommendations);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch recommendations" });
+    }
+  });
+
   // Yangi film qo‘shish
   app.post("/api/movies", checkAdmin, async (req, res) => {
     try {
@@ -82,11 +97,26 @@ export default function setupRoutes(app) {
   app.put("/api/movies/:id", checkAdmin, async (req, res) => {
     try {
       console.log("PUT /api/movies/:id payload:", req.body); // Log incoming payload
-      const { name, caption, movieUrl, keywords, fileType, teaser, size, duration, views, accessedBy } = req.body;
+      const {
+        name,
+        caption,
+        movieUrl,
+        keywords,
+        fileType,
+        teaser,
+        size,
+        duration,
+        views,
+        accessedBy,
+      } = req.body;
 
       // Validate required fields
       if (!name || !caption || !movieUrl || !fileType) {
-        return res.status(400).json({ error: "Name, caption, movieUrl, and fileType are required" });
+        return res
+          .status(400)
+          .json({
+            error: "Name, caption, movieUrl, and fileType are required",
+          });
       }
 
       const updateData = {
@@ -95,21 +125,25 @@ export default function setupRoutes(app) {
         movieUrl,
         keywords: Array.isArray(keywords) ? keywords : [],
         fileType,
-        teaser: teaser || '',
-        size: size || '',
-        duration: duration || '',
+        teaser: teaser || "",
+        size: size || "",
+        duration: duration || "",
         views: parseInt(views) || 0,
         accessedBy: Array.isArray(accessedBy) ? accessedBy : [],
       };
 
-      const movie = await Movie.findByIdAndUpdate(req.params.id, updateData, { new: true });
+      const movie = await Movie.findByIdAndUpdate(req.params.id, updateData, {
+        new: true,
+      });
       if (!movie) {
         return res.status(404).json({ error: "Film topilmadi" });
       }
       res.json(movie);
     } catch (err) {
       console.error("Filmni yangilashda xato:", err);
-      res.status(500).json({ error: "Filmni yangilashda xatolik", details: err.message });
+      res
+        .status(500)
+        .json({ error: "Filmni yangilashda xatolik", details: err.message });
     }
   });
 

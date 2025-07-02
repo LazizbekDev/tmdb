@@ -87,56 +87,64 @@ export async function handleStart(ctx) {
 
         // Video yuborish — har q prácticas
         await ctx.replyWithVideo(movie.movieUrl, {
-          caption: caption(movie, false),
-          parse_mode: "HTML",
-          protect_content: shouldProtect,
-          reply_markup: {
-            inline_keyboard: [
-              ...(isAdmin
-                ? [
-                    [
-                      {
-                        text: "Delete 🗑",
-                        callback_data: `delete_${movie._id}`,
-                      },
-                      {
-                        text: "Update ✏️",
-                        callback_data: `update_${movie._id}`,
-                      },
-                    ],
-                    [
-                      {
-                        text: isInWatchlist
-                          ? "Remove from Watch List 🗑"
-                          : "📌 Add to Watch List",
-                        callback_data: isInWatchlist
-                          ? `remove_later_${movie._id}`
-                          : `save_later_${movie._id}`,
-                      },
-                    ],
-                    [{ text: "Search", switch_inline_query_current_chat: "" }],
-                  ]
-                : [
-                    [
-                      {
-                        text: isInWatchlist
-                          ? "Remove from Watch List 🗑"
-                          : "📌 Add to Watch List",
-                        callback_data: isInWatchlist
-                          ? `remove_later_${movie._id}`
-                          : `save_later_${movie._id}`,
-                      },
-                    ],
-                    [
-                      {
-                        text: "Search",
-                        switch_inline_query_current_chat: "",
-                      },
-                    ],
-                  ]),
-            ],
-          },
-        });
+      caption: caption(movie, false),
+      parse_mode: "HTML",
+      protect_content: shouldProtect,
+      reply_markup: {
+        inline_keyboard: [
+          ...(isAdmin
+            ? [
+                [
+                  {
+                    text: "Delete 🗑",
+                    callback_data: `delete_${movie._id}`,
+                  },
+                  {
+                    text: "Update ✏️",
+                    callback_data: `update_${movie._id}`,
+                  },
+                ],
+                [
+                  {
+                    text: isInWatchlist
+                      ? "Remove from Watch List 🗑"
+                      : "📌 Add to Watch List",
+                    callback_data: isInWatchlist
+                      ? `remove_later_${movie._id}`
+                      : `save_later_${movie._id}`,
+                  },
+                  {
+                    text: "Similar Movies 🎥",
+                    web_app: { url: `${process.env.WEB}movie/${movie._id}/similar` },
+                  },
+                ],
+                [{ text: "Search", switch_inline_query_current_chat: "" }],
+              ]
+            : [
+                [
+                  {
+                    text: isInWatchlist
+                      ? "Remove from Watch List 🗑"
+                      : "📌 Add to Watch List",
+                    callback_data: isInWatchlist
+                      ? `remove_later_${movie._id}`
+                      : `save_later_${movie._id}`,
+                  },
+                  {
+                    text: "Similar Movies 🎥",
+                    web_app: { url: `${process.env.WEB}movie/${movie._id}/similar` },
+                  },
+                ],
+                [
+                  {
+                    text: "Search",
+                    switch_inline_query_current_chat: "",
+                  },
+                ],
+              ]),
+        ],
+      },
+    });
 
         if (!isMember && !hasAccessedBefore) {
           user.accessCount++;

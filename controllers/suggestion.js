@@ -118,7 +118,7 @@ export const suggestMovie = async (bot, userId) => {
             [
               {
                 text: "▶️ Show Teaser",
-                callback_data: `revealteaser_${item._id}`,
+                callback_data: `reveal_teaser_${item._id}`,
               },
               {
                 text: "🍿 Watch Now",
