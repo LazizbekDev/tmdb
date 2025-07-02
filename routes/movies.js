@@ -1,6 +1,7 @@
 import Movie from "../model/MovieModel.js";
 import { checkAdmin } from "../middleware/auth.js";
 import axios from "axios";
+import mongoose from "mongoose";
 
 export default function setupRoutes(app) {
   // Health check route
@@ -55,20 +56,48 @@ export default function setupRoutes(app) {
     }
   });
 
-  app.get("/api/recommendations/:id", async (req, res) => {
-    try {
-      const movie = await Movie.findById(req.params.id);
-      if (!movie) return res.status(404).json({ error: "Movie not found" });
-      const recommendations = await Movie.find({
-        _id: { $ne: movie._id },
-        cleanedKeywords: { $in: movie.cleanedKeywords },
-        keywords: { $in: movie.keywords },
-      }).limit(5);
-      res.json(recommendations);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to fetch recommendations" });
+app.get("/api/recommendations/:id", async (req, res) => {
+  try {
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid movie ID format" });
     }
-  });
+
+    // Fetch the movie
+    const movie = await Movie.findById(req.params.id);
+    if (!movie) {
+      console.log("Movie not found for ID:", req.params.id);
+      return res.status(404).json({ error: "Movie not found" });
+    }
+
+    // Log movie keywords for debugging
+    const normalizedKeywords = (movie.keywords || [])
+      .flatMap((kw) => kw.replace(/#/g, "").split(/[\s,]+/))
+      .filter((kw) => kw.trim() !== "")
+      .map((kw) => kw.toLowerCase());
+    console.log("Normalized keywords:", normalizedKeywords);
+
+    // Fetch recommendations with regex to match both array and string keywords
+    const recommendations = await Movie.find({
+      _id: { $ne: movie._id },
+      $or: [
+        { keywords: { $in: normalizedKeywords } }, // Matches array-based keywords
+        { keywords: { $regex: normalizedKeywords.join("|"), $options: "i" } }, // Matches string-based keywords
+      ],
+    }).limit(5);
+
+    console.log("Recommendations found:", recommendations.length);
+    res.json(recommendations);
+  } catch (err) {
+    console.error("Error in /recommendations/:id:", {
+      message: err.message,
+      stack: err.stack,
+      movieId: req.params.id,
+    });
+    res.status(500).json({ error: "Failed to fetch recommendations", details: err.message });
+  }
+});
 
   // Yangi film qo‘shish
   app.post("/api/movies", checkAdmin, async (req, res) => {
@@ -112,11 +141,9 @@ export default function setupRoutes(app) {
 
       // Validate required fields
       if (!name || !caption || !movieUrl || !fileType) {
-        return res
-          .status(400)
-          .json({
-            error: "Name, caption, movieUrl, and fileType are required",
-          });
+        return res.status(400).json({
+          error: "Name, caption, movieUrl, and fileType are required",
+        });
       }
 
       const updateData = {
