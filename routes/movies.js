@@ -55,7 +55,7 @@ export default function setupRoutes(app) {
     }
   });
 
-  app.get("/recommendations/:id", async (req, res) => {
+  app.get("/api/recommendations/:id", async (req, res) => {
     try {
       const movie = await Movie.findById(req.params.id);
       if (!movie) return res.status(404).json({ error: "Movie not found" });
