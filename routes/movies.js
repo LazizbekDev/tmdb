@@ -78,14 +78,19 @@ app.get("/api/recommendations/:id", async (req, res) => {
       .map((kw) => kw.toLowerCase());
     console.log("Normalized keywords:", normalizedKeywords);
 
-    // Fetch recommendations with regex to match both array and string keywords
-    const recommendations = await Movie.find({
-      _id: { $ne: movie._id },
-      $or: [
-        { keywords: { $in: normalizedKeywords } }, // Matches array-based keywords
-        { keywords: { $regex: normalizedKeywords.join("|"), $options: "i" } }, // Matches string-based keywords
-      ],
-    }).limit(5);
+    // Fetch recommendations with randomization
+    const recommendations = await Movie.aggregate([
+      {
+        $match: {
+          _id: { $ne: new mongoose.Types.ObjectId(req.params.id) },
+          $or: [
+            { keywords: { $in: normalizedKeywords } }, // Matches array-based keywords
+            { keywords: { $regex: normalizedKeywords.join("|"), $options: "i" } }, // Matches string-based keywords
+          ],
+        },
+      },
+      { $sample: { size: 5 } }, // Randomize results, return up to 5
+    ]);
 
     console.log("Recommendations found:", recommendations.length);
     res.json(recommendations);
