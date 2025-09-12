@@ -26,10 +26,10 @@ export default async function teaser(ctx) {
         parse_mode: "HTML",
     });
 
-    await ctx.reply(
+    ctx.session = null;
+
+    return await ctx.reply(
         `✅ The movie <b>"${ctx.session.name}"</b> has been added to @${process.env.CHANNEL_USERNAME} successfully!\n\n👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}">Check out</a>`,
         { parse_mode: "HTML" }
     );
-
-    delete ctx.session; // Clean up user state after completion
 }

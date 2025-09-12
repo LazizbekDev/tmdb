@@ -104,37 +104,32 @@ export async function handleStart(ctx) {
                     callback_data: `update_${movie._id}`,
                   },
                 ],
-                [
-                  {
-                    text: isInWatchlist
+                [{text: isInWatchlist
                       ? "Remove from Watch List 🗑"
                       : "📌 Add to Watch List",
                     callback_data: isInWatchlist
                       ? `remove_later_${movie._id}`
                       : `save_later_${movie._id}`,
-                  },
-                  {
+                  }],
+                  [{
                     text: "Similar Movies 🎥",
                     web_app: { url: `${process.env.WEB}movie/${movie._id}/similar` },
-                  },
-                ],
+                  }]
                 [{ text: "Search", switch_inline_query_current_chat: "" }],
               ]
             : [
-                [
-                  {
+                [{
                     text: isInWatchlist
                       ? "Remove from Watch List 🗑"
                       : "📌 Add to Watch List",
                     callback_data: isInWatchlist
                       ? `remove_later_${movie._id}`
                       : `save_later_${movie._id}`,
-                  },
-                  {
+                  }],
+                [{
                     text: "Similar Movies 🎥",
                     web_app: { url: `${process.env.WEB}movie/${movie._id}/similar` },
-                  },
-                ],
+                  }],
                 [
                   {
                     text: "Search",

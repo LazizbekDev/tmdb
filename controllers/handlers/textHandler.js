@@ -14,35 +14,39 @@ import { sendUpdateMessage } from "../../utilities/updateFilm.js";
 export async function handleTextInput(ctx, bot) {
   const userId = ctx.from.id;
   const messageText = ctx.message.text;
-  const ctxData = ctx.session;
+  const isAdmin = ctx.from.username?.toLowerCase() === process.env.ADMIN?.toLowerCase();
 
   // Sessiya tekshiruvi
-  if (!ctxData || !ctxData.step) {
+  if (
+    (isAdmin && ctx.session || !ctx.session) ||
+    (!isAdmin && !ctx.session.step)
+  ) {
+    if (ctx.session) ctx.session.step = null; // faqat mavjud bo‘lsa tozalash
     return await searchAndReply(ctx, messageText, bot);
   }
 
   try {
-    switch (ctxData.step) {
+    switch (ctx.session.step) {
       case "awaitingSeriesForNewSeason":
-        await findCurrentSeason(ctx, ctxData, userId);
+        await findCurrentSeason(ctx, ctx.session, userId);
         break;
       case "awaitingSeriesDetails":
-        await title(ctx, ctxData, userId);
+        await title(ctx, ctx.session, userId);
         break;
       case "awaitingDetails":
-        await info(ctx, ctxData);
+        await info(ctx, ctx.session);
         break;
       case "awaitingFeedback":
         await toAdmin(ctx);
         break;
       case "awaitingSeriesFiles":
         if (messageText === "Done") {
-          await saveSeries(ctx, ctxData, userId);
+          await saveSeries(ctx, ctx.session, userId);
         }
         break;
       case "awaitingNewSeasonDetails":
         if (messageText === "Done") {
-          await saveNewSeason(ctx, ctxData, userId);
+          await saveNewSeason(ctx, ctx.session, userId);
         }
         break;
       case "awaitingRequestName":
@@ -54,20 +58,19 @@ export async function handleTextInput(ctx, bot) {
         });
         await ctx.telegram.sendMessage(
           process.env.ADMIN_ID,
-          `👤from ${
-            ctx.from.username
-              ? "@" + ctx.from.username
-              : `User ID: <code>${userId} - ${ctx.from?.first_name}</code>`
+          `👤from ${ctx.from.username
+            ? "@" + ctx.from.username
+            : `User ID: <code>${userId} - ${ctx.from?.first_name}</code>`
           }\n\n📝<i>${messageText}</i>\n\nℹ️ to reply: <code>/reply ${userId} Thanks for your feedback ☺️</code>`,
           { parse_mode: "HTML" }
         );
         await ctx.reply("Thank you! Your request has been submitted.");
         break;
       case "name_input":
-        if (!ctxData.updateFields) ctxData.updateFields = {};
-        ctxData.updateFields.name = messageText;
-        ctxData.step = "description_input";
-        const movieId = ctxData.targetMovieId;
+        if (!ctx.session.updateFields) ctx.session.updateFields = {};
+        ctx.session.updateFields.name = messageText;
+        ctx.session.step = "description_input";
+        const movieId = ctx.session.targetMovieId;
         await sendUpdateMessage(
           ctx,
           "Please choose an option for the description or enter a new description:",
@@ -76,10 +79,10 @@ export async function handleTextInput(ctx, bot) {
         );
         break;
       case "description_input":
-        if (!ctxData.updateFields) ctxData.updateFields = {};
-        ctxData.updateFields.description = messageText;
-        ctxData.step = "keywords_input";
-        const movieIdDesc = ctxData.targetMovieId;
+        if (!ctx.session.updateFields) ctx.session.updateFields = {};
+        ctx.session.updateFields.description = messageText;
+        ctx.session.step = "keywords_input";
+        const movieIdDesc = ctx.session.targetMovieId;
         await sendUpdateMessage(
           ctx,
           "Please choose an option for the keywords or enter new keywords:",
@@ -88,10 +91,10 @@ export async function handleTextInput(ctx, bot) {
         );
         break;
       case "keywords_input":
-        if (!ctxData.updateFields) ctxData.updateFields = {};
-        ctxData.updateFields.keywords = messageText;
-        delete ctxData.step;
-        const movieIdKey = ctxData.targetMovieId;
+        if (!ctx.session.updateFields) ctx.session.updateFields = {};
+        ctx.session.updateFields.keywords = messageText;
+        delete ctx.session.step;
+        const movieIdKey = ctx.session.targetMovieId;
         await sendUpdateMessage(
           ctx,
           "Update complete! Press to save changes:",

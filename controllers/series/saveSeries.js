@@ -27,9 +27,8 @@ export default async function saveSeries(ctx) {
   // Send to the main channel
   await ctx.telegram.sendVideo(process.env.ID, newSeries.teaser, {
     caption: `
-🎞️ <b><a href="https://t.me/${process.env.BOT_USERNAME}?start=${
-      newSeries._id
-    }">${newSeries.name}</a></b>
+🎞️ <b><a href="https://t.me/${process.env.BOT_USERNAME}?start=${newSeries._id
+      }">${newSeries.name}</a></b>
 
 📀 <b>Season ${newSeries.series[0].seasonNumber}</b>
 🎬 <b>Total Episodes:</b> ${newSeries.series?.[0]?.episodes?.length || 0}
@@ -43,14 +42,13 @@ export default async function saveSeries(ctx) {
 
   // Confirm with the user that the series was saved
   await ctx.replyWithVideo(newSeries.teaser, {
-    caption: `<b>${newSeries.name.toUpperCase()}</b> saved successfully!\n🔗 <a href='https://t.me/${
-      process.env.BOT_USERNAME
-    }?start=${newSeries._id}'>Click to watch</a>`,
+    caption: `<b>${newSeries.name.toUpperCase()}</b> saved successfully!\n🔗 <a href='https://t.me/${process.env.BOT_USERNAME
+      }?start=${newSeries._id}'>Click to watch</a>`,
     reply_markup: {
       remove_keyboard: true,
     },
     parse_mode: "HTML",
   });
 
-  delete ctx.session;
+  Object.keys(ctx.session).forEach(key => delete ctx.session[key]);
 }

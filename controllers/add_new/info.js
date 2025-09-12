@@ -23,5 +23,5 @@ export default async function info(ctx) {
   if (movieSize) ctx.session.movieSize = movieSize;
   if (duration) ctx.session.duration = duration;
 
-  await ctx.reply("Now send the teaser video");
+  return await ctx.reply("Now send the teaser video");
 }

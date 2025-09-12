@@ -19,7 +19,7 @@ export function handleActionButtons(bot) {
 
   bot.action(/list_page_(\d+)/, async (ctx) => {
     const page = parseInt(ctx.match[1], 10);
-    await handlePagination(ctx, bot, page, Movie, Series, 10);
+    await handlePagination(ctx, bot, page, Movie, Series, 5, {}, "list_page_");
   });
 
   bot.action(/search_list_(\d+)/, async (ctx) => {
@@ -36,7 +36,7 @@ export function handleActionButtons(bot) {
         return;
       }
 
-      console.log(`🔍 Search list page: ${cleanedText}`);
+      // console.log(`🔍 Search list page: ${cleanedText}`);
 
       const query = {
         $or: [
