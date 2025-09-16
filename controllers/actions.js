@@ -19,17 +19,17 @@ export default function setupActions(bot) {
 
   // Handle action buttons
   handleActionButtons(bot);
+  
+  // Handle video and document messages
+  bot.on(["video", "document"], (ctx) => {
+    if (ctx.message.via_bot) return;
+    handleVideoOrDocument(ctx);
+  });
 
   // Handle text input
   bot.on("text", (ctx) => {
     if (ctx.message.via_bot) return;
     handleTextInput(ctx, bot);
-  });
-
-  // Handle video and document messages
-  bot.on(["video", "document"], (ctx) => {
-    if (ctx.message.via_bot) return;
-    handleVideoOrDocument(ctx);
   });
 
   // Handle callback queries

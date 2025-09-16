@@ -30,7 +30,7 @@ export async function getPaginatedData(model, page = 1, limit = 10, query = {}) 
 
   // Natijani keshga saqlash
   cache.set(cacheKey, result);
-  console.log(`🗃️ Keshga saqlandi: ${cacheKey}`);
+  // console.log(`🗃️ Keshga saqlandi: ${cacheKey}`);
 
   return result;
 }

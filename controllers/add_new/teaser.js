@@ -29,7 +29,7 @@ export default async function teaser(ctx) {
     ctx.session = null;
 
     return await ctx.reply(
-        `✅ The movie <b>"${ctx.session.name}"</b> has been added to @${process.env.CHANNEL_USERNAME} successfully!\n\n👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}">Check out</a>`,
+        `✅ The movie <b>"${movie.name}"</b> has been added to @${process.env.CHANNEL_USERNAME} successfully!\n\n👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}">Check out</a>`,
         { parse_mode: "HTML" }
     );
 }

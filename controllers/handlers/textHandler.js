@@ -14,19 +14,12 @@ import { sendUpdateMessage } from "../../utilities/updateFilm.js";
 export async function handleTextInput(ctx, bot) {
   const userId = ctx.from.id;
   const messageText = ctx.message.text;
-  const isAdmin = ctx.from.username?.toLowerCase() === process.env.ADMIN?.toLowerCase();
-
-  // Sessiya tekshiruvi
-  if (
-    (isAdmin && ctx.session || !ctx.session) ||
-    (!isAdmin && !ctx.session.step)
-  ) {
-    if (ctx.session) ctx.session.step = null; // faqat mavjud bo‘lsa tozalash
-    return await searchAndReply(ctx, messageText, bot);
-  }
+  // const isAdmin = ctx.from.username?.toLowerCase() === process.env.ADMIN?.toLowerCase();
+  const step = ctx.session?.step;
 
   try {
-    switch (ctx.session.step) {
+    console.log(`Step: ${step}, Message: ${messageText}`);
+    switch (step) {
       case "awaitingSeriesForNewSeason":
         await findCurrentSeason(ctx, ctx.session, userId);
         break;
@@ -35,6 +28,7 @@ export async function handleTextInput(ctx, bot) {
         break;
       case "awaitingDetails":
         await info(ctx, ctx.session);
+        console.log("Details saved, awaiting teaser.");
         break;
       case "awaitingFeedback":
         await toAdmin(ctx);
@@ -67,41 +61,40 @@ export async function handleTextInput(ctx, bot) {
         await ctx.reply("Thank you! Your request has been submitted.");
         break;
       case "name_input":
-        if (!ctx.session.updateFields) ctx.session.updateFields = {};
+        ctx.session.updateFields = ctx.session.updateFields || {};
         ctx.session.updateFields.name = messageText;
         ctx.session.step = "description_input";
-        const movieId = ctx.session.targetMovieId;
         await sendUpdateMessage(
           ctx,
           "Please choose an option for the description or enter a new description:",
-          movieId,
+          ctx.session.targetMovieId,
           "description"
         );
         break;
       case "description_input":
-        if (!ctx.session.updateFields) ctx.session.updateFields = {};
+        ctx.session.updateFields = ctx.session.updateFields || {};
         ctx.session.updateFields.description = messageText;
         ctx.session.step = "keywords_input";
-        const movieIdDesc = ctx.session.targetMovieId;
         await sendUpdateMessage(
           ctx,
           "Please choose an option for the keywords or enter new keywords:",
-          movieIdDesc,
+          ctx.session.targetMovieId,
           "keywords"
         );
         break;
       case "keywords_input":
-        if (!ctx.session.updateFields) ctx.session.updateFields = {};
+        ctx.session.updateFields = ctx.session.updateFields || {};
         ctx.session.updateFields.keywords = messageText;
         delete ctx.session.step;
-        const movieIdKey = ctx.session.targetMovieId;
         await sendUpdateMessage(
           ctx,
           "Update complete! Press to save changes:",
-          movieIdKey,
+          ctx.session.targetMovieId,
           "save"
         );
         break;
+      default:
+        await searchAndReply(ctx, messageText, bot);
     }
   } catch (error) {
     console.error("🚨 Error handling text input:", error);
@@ -115,11 +108,8 @@ async function searchAndReply(ctx, messageText, bot) {
     const page = 1;
     const limit = 10;
     const cleanedText = cleanText(messageText);
-    ctx.session.query = cleanedText; // Sessiyaga saqlash
+    ctx.session.query = cleanedText;
 
-    // Qidiruv so'rovini log qilish
-
-    // Qidiruv so'rovi
     const query = {
       $or: [
         { cleanedName: { $regex: cleanedText, $options: "i" } },
@@ -127,19 +117,16 @@ async function searchAndReply(ctx, messageText, bot) {
       ],
     };
 
-
     const [movies, seriesList] = await Promise.all([
       Movie.find(query).select("name caption keywords").lean(),
       Series.find(query).select("name caption keywords").lean(),
     ]);
 
-    // Agar hech narsa topilmasa
     if (movies.length === 0 && seriesList.length === 0) {
       await ctx.reply("😔 There's no films found!");
       return;
     }
 
-    // handlePagination funksiyasidan foydalanish
     await handlePagination(ctx, bot, page, Movie, Series, limit, query);
   } catch (error) {
     console.error("🔍 Search error:", error);

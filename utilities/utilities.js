@@ -71,9 +71,6 @@ export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Mode
       getPaginatedData(Model2, page, limit, query),
     ]);
 
-    // Natijalarni log qilish
-    console.log(`📄 [Pagination] Model1: ${result1.data.length} ta, Model2: ${result2.data.length} ta`);
-
     // Agar hech qanday ma'lumot topilmasa
     if (result1.data.length === 0 && result2.data.length === 0) {
       await ctx.reply("😔 No results appeared!");
