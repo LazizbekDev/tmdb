@@ -10,6 +10,8 @@ import saveSeries from "../series/saveSeries.js";
 import saveNewSeason from "../series/seasons/saveSeason.js";
 import info from "../add_new/info.js";
 import { sendUpdateMessage } from "../../utilities/updateFilm.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import fetch from "node-fetch";
 
 export async function handleTextInput(ctx, bot) {
   const userId = ctx.from.id;
@@ -103,6 +105,8 @@ export async function handleTextInput(ctx, bot) {
   }
 }
 
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API);
+
 async function searchAndReply(ctx, messageText, bot) {
   try {
     const page = 1;
@@ -122,12 +126,62 @@ async function searchAndReply(ctx, messageText, bot) {
       Series.find(query).select("name caption keywords").lean(),
     ]);
 
-    if (movies.length === 0 && seriesList.length === 0) {
-      await ctx.reply("😔 There's no films found!");
+    // If direct matches are found → paginate results
+    if (movies.length > 0 || seriesList.length > 0) {
+      await handlePagination(ctx, bot, page, Movie, Series, limit, query);
       return;
     }
 
-    await handlePagination(ctx, bot, page, Movie, Series, limit, query);
+    // --- AI suggestion ---
+    const allMovies = await Movie.find().select("name").lean();
+    const allSeries = await Series.find().select("name").lean();
+    const availableTitles = [...allMovies, ...allSeries].map(item => item.name);
+
+    const prompt = `
+User searched for: "${messageText}"
+
+Here is the list of movies/series available in my database:
+${availableTitles.join("\n")}
+
+Task: pick the single closest match to the user’s input.  
+If nothing is similar, return "NONE".
+`;
+
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" +
+        process.env.GEMINI_API,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
+
+    const data = await response.json();
+    const suggestion = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+    if (!suggestion || suggestion === "NONE") {
+      await ctx.reply("😔 Nothing found, and no similar titles exist in our database.");
+      return;
+    }
+
+    // Check if suggested movie exists in DB
+    const matchedMovie =
+      (await Movie.findOne({ name: suggestion }).lean()) ||
+      (await Series.findOne({ name: suggestion }).lean());
+
+    if (matchedMovie) {
+      await ctx.reply(
+        `😔 No exact match found. But maybe you meant:  
+👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${matchedMovie._id}"><b>${suggestion}</b></a>`,
+        { parse_mode: "HTML" }
+      );
+    } else {
+      await ctx.reply(`😔 No exact match found. But maybe you meant:  
+👉 <b>${suggestion}</b>`, { parse_mode: "HTML" });
+    }
   } catch (error) {
     console.error("🔍 Search error:", error);
     await ctx.reply("Something went wrong while searching. Try again later.");
