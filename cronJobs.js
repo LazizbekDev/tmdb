@@ -20,10 +20,10 @@ export function setupCronJobs(bot) {
         return;
       }
 
-      const threeDays = 3 * 24 * 60 * 60 * 1000;
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
       const lastRunDate = new Date(log.lastRun);
 
-      if (now - lastRunDate >= threeDays) {
+      if (now - lastRunDate >= sevenDays) {
         console.log("🎬 Running movie suggestion job...");
 
         const users = await User.find();
@@ -43,7 +43,7 @@ export function setupCronJobs(bot) {
         await log.save();
         console.log("✅ Suggestions sent and log updated.");
       } else {
-        console.log("⏳ Less than 3 days since last run. Skipping...");
+        console.log("⏳ Less than 1 week since last run. Skipping...");
       }
     } catch (err) {
       console.error("❌ Cron job failed:", err);

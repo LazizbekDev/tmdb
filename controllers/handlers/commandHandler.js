@@ -1,56 +1,17 @@
+import mongoose from "mongoose";
 import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { suggestMovie } from "../suggestion.js";
-import formatList, { generateHeader, generatePaginationButtons } from "../list/formatList.js";
-import { connect } from "../../db.js";
+import { generateHeader } from "../list/formatList.js";
 import User from "../../model/User.js";
+import { handlePagination } from "../../utilities/utilities.js";
 
 export function handleCommands(bot) {
-  // Verify database connection
-  async function ensureDbConnection() {
-    try {
-      await connect(process.env.DB);
-      console.log("Database connection verified for command");
-    } catch (error) {
-      console.error("Database connection error:", error);
-      throw new Error("Failed to connect to database");
-    }
-  }
-
   bot.command("list", async (ctx) => {
     try {
-      await ensureDbConnection();
       const page = parseInt(ctx.match?.[1] || 1);
-      const limit = 10;
-
-      const [movies, series, moviesCount, seriesCount] = await Promise.all([
-        Movie.find({}).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit),
-        Series.find({}).sort({ _id: -1 }).skip((page - 1) * limit).limit(limit),
-        Movie.countDocuments({}),
-        Series.countDocuments({}),
-      ]);
-
-      if (moviesCount === 0 && seriesCount === 0) {
-        return ctx.reply(
-          "No movies or series found in the database. Please add content or contact the admin.",
-          {
-            reply_markup: {
-              inline_keyboard: [[{ text: "Contact Admin", callback_data: "feedback" }]],
-            },
-          }
-        );
-      }
-
-      const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
-      const header = page === 1 ? generateHeader(moviesCount, seriesCount) : "";
-      const content = header + formatList(movies, series, page, limit);
-      const paginationButtons = generatePaginationButtons(page, totalPages);
-
-      await ctx.reply(content || "No content available for this page.", {
-        parse_mode: "HTML",
-        reply_markup: { inline_keyboard: paginationButtons },
-      });
+      await handlePagination(ctx, bot, page, Movie, Series, 10, {}, "page_", generateHeader);
     } catch (error) {
       console.error("Error in /list command:", error);
       await ctx.reply("An error occurred while processing your request.");
@@ -60,41 +21,16 @@ export function handleCommands(bot) {
 
   bot.command("watchlist", async (ctx) => {
     try {
-      await ensureDbConnection();
-
       const userId = ctx.from.id.toString();
       const user = await User.findOne({ telegramId: userId });
-      if (!user) {
+
+      if (!user || !user.savedMovies || user.savedMovies.length === 0) {
         return ctx.reply("Sizda hech qanday saqlangan filmlar yoki seriallar yo‘q.");
       }
-      const savedMovies = user.savedMovies || [];
-      if (savedMovies.length === 0) { 
-        return ctx.reply("Sizda hech qanday saqlangan filmlar yoki seriallar yo‘q.");
-      }
-      const limit = 10;
+
       const page = parseInt(ctx.match?.[1] || 1);
-      const skip = (page - 1) * limit;
-      const movies = await Movie.find({ _id: { $in: savedMovies } })
-        .sort({ _id: -1 })
-        .skip(skip)
-        .limit(limit);
-      const series = await Series.find({ _id: { $in: savedMovies } })
-        .sort({ _id: -1 })
-        .skip(skip)
-        .limit(limit);
-      const moviesCount = await Movie.countDocuments({ _id: { $in: savedMovies } });
-      const seriesCount = await Series.countDocuments({ _id: { $in: savedMovies } });
-      if (moviesCount === 0 && seriesCount === 0) {
-        return ctx.reply("Sizda hech qanday saqlangan filmlar yoki seriallar yo‘q.");
-      }
-      const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
-      const header = page === 1 ? generateHeader(moviesCount, seriesCount) : "";
-      const content = header + formatList(movies, series, page, limit);
-      const paginationButtons = generatePaginationButtons(page, totalPages, "watch_list_");
-      await ctx.reply(content || "No content available for this page.", {
-        parse_mode: "HTML",
-        reply_markup: { inline_keyboard: paginationButtons },
-      });
+      const query = { _id: { $in: user.savedMovies } };
+      await handlePagination(ctx, bot, page, Movie, Series, 10, query, "watch_list_", generateHeader);
     } catch (error) {
       console.error("Error in /watch_list command:", error);
       await ctx.reply("An error occurred while processing your request.");
@@ -108,10 +44,7 @@ export function handleCommands(bot) {
         return ctx.reply("Sizda bu amalni bajarish uchun ruxsat yo‘q.");
       }
 
-      await ensureDbConnection();
-
-      // Parse user_id and page from command (e.g., /show 1622899126 2)
-      const args = ctx.message.text.split(" ").slice(1); // Skip /show
+      const args = ctx.message.text.split(" ").slice(1);
       if (args.length < 1) {
         return ctx.reply("Iltimos, foydalanuvchi ID’sini kiriting. Masalan: /show 1622899126");
       }
@@ -122,46 +55,55 @@ export function handleCommands(bot) {
       }
 
       const page = parseInt(args[1] || 1);
-      const limit = 10;
+      const query = { accessedBy: userId.toString() };
+      const showHeader = (moviesCount, seriesCount) =>
+        `<b>Foydalanuvchi (ID: ${userId}) ko‘rgan kontent</b>\nFilmlar: ${moviesCount} | Seriallar: ${seriesCount}\n\n`;
 
-      // Query movies and series where accessedBy includes userId
-      const [movies, series, moviesCount, seriesCount] = await Promise.all([
-        Movie.find({ accessedBy: userId.toString() })
-          .sort({ _id: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit),
-        Series.find({ accessedBy: userId.toString() })
-          .sort({ _id: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit),
-        Movie.countDocuments({ accessedBy: userId.toString() }),
-        Series.countDocuments({ accessedBy: userId.toString() }),
-      ]);
-
-      // Log for debugging
-      console.log(`User ID: ${userId}, Page: ${page}, Movies: ${movies.length}, Series: ${series.length}`);
-
-      if (moviesCount === 0 && seriesCount === 0) {
-        return ctx.reply(`Foydalanuvchi (ID: ${userId}) hech qanday film yoki serial ko‘rmagan.`);
-      }
-
-      const totalPages = Math.ceil(Math.max(moviesCount, seriesCount) / limit);
-      const header =
-        page === 1
-          ? `<b>Foydalanuvchi (ID: ${userId}) ko‘rgan kontent</b>\n` +
-            `Filmlar: ${moviesCount} | Seriallar: ${seriesCount}\n\n`
-          : "";
-      const content = header + formatList(movies, series, page, limit);
-      const paginationButtons = generatePaginationButtons(page, totalPages, `show_${userId}_`);
-
-      await ctx.reply(content || "No content available for this page.", {
-        parse_mode: "HTML",
-        reply_markup: { inline_keyboard: paginationButtons },
-      });
+      await handlePagination(ctx, bot, page, Movie, Series, 10, query, `show_${userId}_`, showHeader);
     } catch (error) {
       console.error("Error in /show command:", error);
       await ctx.reply("An error occurred while processing your request.");
       await adminNotifier(bot, error, ctx, "Show command error");
+    }
+  });
+
+  bot.command("stat", async (ctx) => {
+    try {
+      if (ctx.from.id !== parseInt(process.env.ADMIN_ID)) {
+        return ctx.reply("Sizda bu amalni bajarish uchun ruxsat yo‘q.");
+      }
+
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const objectId = mongoose.Types.ObjectId.createFromTime(Math.floor(sevenDaysAgo.getTime() / 1000));
+      const query = { _id: { $gte: objectId } };
+
+      const [newUsers, newMovies, newSeries, totalUsers, totalMovies, totalSeries] = await Promise.all([
+        User.countDocuments(query),
+        Movie.countDocuments(query),
+        Series.countDocuments(query),
+        User.countDocuments(),
+        Movie.countDocuments(),
+        Series.countDocuments(),
+      ]);
+
+      const message = `
+📊 <b>Haftalik Statistika (Oxirgi 7 kun)</b>
+
+👤 <b>Yangi foydalanuvchilar:</b> +${newUsers}
+🎞 <b>Yangi filmlar:</b> +${newMovies}
+📺 <b>Yangi seriallar:</b> +${newSeries}
+
+=================
+📈 <b>Umumiy ko'rsatkichlar:</b>
+Jami foydalanuvchilar: ${totalUsers}
+Jami filmlar: ${totalMovies}
+Jami seriallar: ${totalSeries}
+`;
+      await ctx.reply(message, { parse_mode: "HTML" });
+    } catch (error) {
+      console.error("Error in /stat command:", error);
+      await ctx.reply("An error occurred while fetching stats.");
+      await adminNotifier(bot, error, ctx, "Stat command error");
     }
   });
 
@@ -180,12 +122,7 @@ export function handleCommands(bot) {
       ctx.reply("Admin panel", {
         reply_markup: {
           inline_keyboard: [
-            [
-              {
-                text: "Admin panelni ochish",
-                web_app: { url: "https://tmdbase.netlify.app/admin/" },
-              },
-            ],
+            [{ text: "Admin panelni ochish", web_app: { url: "https://tmdbase.netlify.app/admin/" } }],
           ],
         },
       });

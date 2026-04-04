@@ -6,20 +6,24 @@ import { handleCommands } from "./handlers/commandHandler.js";
 import { handleCallbackQueries } from "./handlers/callbackQueryHandler.js";
 import { handleChatMemberUpdates } from "./handlers/chatMemberHandler.js";
 import { handleStart } from "./handlers/startHandler.js";
+import replyToUser from "./feedback/replyToUser.js";
 
 export default function setupActions(bot) {
-    // Handle /start command
+  // Handle /start command
   bot.start((ctx) => handleStart(ctx));
 
   // Handle commands
   handleCommands(bot);
+
+  // Handle reply and messages commands
+  replyToUser(bot);
 
   // Handle inline queries
   bot.on("inline_query", search);
 
   // Handle action buttons
   handleActionButtons(bot);
-  
+
   // Handle video and document messages
   bot.on(["video", "document"], (ctx) => {
     if (ctx.message.via_bot) return;

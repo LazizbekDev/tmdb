@@ -18,7 +18,6 @@ export async function getPaginatedData(model, page = 1, limit = 10, query = {}) 
   const data = await model
     .find(query)
     .sort({ _id: -1 })
-    .select("name caption movieUrl views")
     .skip(skip)
     .limit(limit)
     .lean();

@@ -10,8 +10,6 @@ import saveSeries from "../series/saveSeries.js";
 import saveNewSeason from "../series/seasons/saveSeason.js";
 import info from "../add_new/info.js";
 import { sendUpdateMessage } from "../../utilities/updateFilm.js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import fetch from "node-fetch";
 
 export async function handleTextInput(ctx, bot) {
   const userId = ctx.from.id;
@@ -21,6 +19,39 @@ export async function handleTextInput(ctx, bot) {
 
   try {
     console.log(`Step: ${step}, Message: ${messageText}`);
+    
+    if (step && step.startsWith("awaitingDelete_")) {
+      const movieId = step.split("_")[1];
+      if (messageText === "CANCEL") {
+        delete ctx.session.step;
+        return ctx.reply("Deletion cancelled.", { reply_markup: { remove_keyboard: true } });
+      }
+
+      let item = await Movie.findById(movieId);
+      let isMovie = true;
+      if (!item) {
+        item = await Series.findById(movieId);
+        isMovie = false;
+      }
+
+      if (!item) {
+        delete ctx.session.step;
+        return ctx.reply("Content not found.", { reply_markup: { remove_keyboard: true } });
+      }
+
+      if (messageText === `sudo delete ${item.name}`) {
+         if (isMovie) {
+           await Movie.findByIdAndDelete(movieId);
+         } else {
+           await Series.findByIdAndDelete(movieId);
+         }
+         delete ctx.session.step;
+         return ctx.reply(`"<b>${item.name}</b>" has been successfully deleted.`, { parse_mode: "HTML", reply_markup: { remove_keyboard: true } });
+      } else {
+         return ctx.reply(`Incorrect confirmation text.\nPlease enter "<code>sudo delete ${item.name}</code>" to confirm or type <code>CANCEL</code> to abort.`, { parse_mode: "HTML" });
+      }
+    }
+
     switch (step) {
       case "awaitingSeriesForNewSeason":
         await findCurrentSeason(ctx, ctx.session, userId);
@@ -105,8 +136,6 @@ export async function handleTextInput(ctx, bot) {
   }
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API);
-
 async function searchAndReply(ctx, messageText, bot) {
   try {
     const page = 1;
@@ -132,59 +161,11 @@ async function searchAndReply(ctx, messageText, bot) {
       return;
     }
 
-    // --- AI suggestion ---
-    const allMovies = await Movie.find().select("name").lean();
-    const allSeries = await Series.find().select("name").lean();
-    const availableTitles = [...allMovies, ...allSeries].map(item => item.name);
+    await ctx.reply("😔 Nothing found in our database.");
 
-    const prompt = `
-User searched for: "${messageText}"
-
-Here is the list of movies/series available in my database:
-${availableTitles.join("\n")}
-
-Task: pick the single closest match to the user’s input.  
-If nothing is similar, return "NONE".
-`;
-
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" +
-        process.env.GEMINI_API,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      }
-    );
-
-    const data = await response.json();
-    const suggestion = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (!suggestion || suggestion === "NONE") {
-      await ctx.reply("😔 Nothing found, and no similar titles exist in our database.");
-      return;
-    }
-
-    // Check if suggested movie exists in DB
-    const matchedMovie =
-      (await Movie.findOne({ name: suggestion }).lean()) ||
-      (await Series.findOne({ name: suggestion }).lean());
-
-    if (matchedMovie) {
-      await ctx.reply(
-        `😔 No exact match found. But maybe you meant:  
-👉 <a href="https://t.me/${process.env.BOT_USERNAME}?start=${matchedMovie._id}"><b>${suggestion}</b></a>`,
-        { parse_mode: "HTML" }
-      );
-    } else {
-      await ctx.reply(`😔 No exact match found. But maybe you meant:  
-👉 <b>${suggestion}</b>`, { parse_mode: "HTML" });
-    }
   } catch (error) {
     console.error("🔍 Search error:", error);
     await ctx.reply("Something went wrong while searching. Try again later.");
     await adminNotifier(bot, error, ctx, "Search error");
   }
-}
+}

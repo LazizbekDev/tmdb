@@ -7,82 +7,38 @@ export default async function search(ctx) {
     if (!query) return;
     const cleanedText = cleanText(query);
     try {
+        const queryObj = {
+            $or: [
+                { cleanedName: { $regex: cleanedText, $options: "i" } },
+                { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
+            ],
+        };
+
         const [movies, seriesList] = await Promise.all([
-        Movie.find({
-            $or: [
-            { cleanedName: { $regex: cleanedText, $options: "i" } },
-            { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
-            ],
-        }),
-        Series.find({
-            $or: [
-            { cleanedName: { $regex: cleanedText, $options: "i" } },
-            { cleanedKeywords: { $regex: cleanedText, $options: "i" } },
-            ],
-        }),
+            Movie.find(queryObj).lean(),
+            Series.find(queryObj).lean(),
         ]);
+
+        const mapItem = (item, typeName) => ({
+            type: "video",
+            id: `${typeName.toLowerCase()}_${item._id.toString()}`,
+            title: `${typeName === "Movie" ? "🎞 Movie" : "📺 Series"}: ${item.name}`,
+            description: item.caption,
+            video_file_id: item.teaser,
+            mime_type: "video/mp4",
+            caption: `\n<b>${item.name}</b>\n\n<i>${item.caption}</i>\n`,
+            parse_mode: "HTML",
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "Watch Now", url: `https://t.me/${process.env.BOT_USERNAME}?start=${item._id}` }],
+                    [{ text: "Search", switch_inline_query_current_chat: "" }],
+                ],
+            },
+        });
+
         const combinedResults = [
-            ...movies.map((movie) => ({
-                type: "video",
-                id: `movie_${movie._id.toString()}`,
-                title: `🎞 Movie: ${movie.name}`,
-                description: movie.caption,
-                video_file_id: movie.teaser,
-                mime_type: "video/mp4",
-                caption: `
-<b>${movie.name}</b>
-
-<i>${movie.caption}</i>
-`,
-                parse_mode: "HTML",
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: "Watch Now",
-                                url: `https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}`,
-                            },
-                        ],
-                        [
-                            {
-                                text: "Search",
-                                switch_inline_query_current_chat: "",
-                            },
-                        ],
-                    ],
-                },
-            })),
-            ...seriesList.map((series) => ({
-                type: "video",
-                id: `series_${series._id.toString()}`,
-                title: `📺 Series: ${series.name}`,
-                description: series.caption, // Appears in inline search results
-                video_file_id: series.teaser, // Assuming 'teaser' stores the trailer's file ID
-                mime_type: "video/mp4",
-                caption: `
-<b>${series.name}</b>
-
-<i>${series.caption}</i>
-`,
-                parse_mode: "HTML",
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: "Watch Now",
-                                url: `https://t.me/${process.env.BOT_USERNAME}?start=${series._id}`,
-                            },
-                        ],
-                        [
-                            {
-                                text: "Search",
-                                switch_inline_query_current_chat: "",
-                            },
-                        ],
-                    ],
-                },
-            })),
-        
+            ...movies.map(m => mapItem(m, "Movie")),
+            ...seriesList.map(s => mapItem(s, "Series")),
         ];
 
         // If no results, add a "request movie" suggestion
