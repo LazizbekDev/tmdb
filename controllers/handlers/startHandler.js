@@ -1,6 +1,7 @@
 import Movie from "../../model/MovieModel.js";
 import Series from "../../model/SeriesModel.js";
 import User from "../../model/User.js";
+import AccessLog from "../../model/AccessLog.js";
 import { checkUserMembership, startMessage } from "../start.js";
 import caption from "../../utilities/caption.js";
 import { notifyAdminContentAccessed } from "../../utilities/admin_notifier.js";
@@ -62,6 +63,7 @@ export async function handleStart(ctx) {
            await movie.save();
            user.accessedMovies.push(movie._id);
            await user.save();
+           await AccessLog.create({ contentType: "Movie", userId: userIdStr, contentId: movie._id });
            await notifyAdminContentAccessed(ctx, ctx.message.from, movie, "Movie");
         }
 
@@ -93,6 +95,7 @@ export async function handleStart(ctx) {
           series.accessedBy.push(userIdStr);
           series.views += 1;
           await series.save();
+          await AccessLog.create({ contentType: "Series", userId: userIdStr, contentId: series._id });
           await notifyAdminContentAccessed(ctx, ctx.message.from, series, "Series");
         }
 

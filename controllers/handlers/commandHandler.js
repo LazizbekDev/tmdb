@@ -5,6 +5,7 @@ import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { suggestMovie } from "../suggestion.js";
 import { generateHeader } from "../list/formatList.js";
 import User from "../../model/User.js";
+import AccessLog from "../../model/AccessLog.js";
 import { handlePagination } from "../../utilities/utilities.js";
 
 export function handleCommands(bot) {
@@ -76,22 +77,28 @@ export function handleCommands(bot) {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const objectId = mongoose.Types.ObjectId.createFromTime(Math.floor(sevenDaysAgo.getTime() / 1000));
       const query = { _id: { $gte: objectId } };
+      const logQuery = { createdAt: { $gte: sevenDaysAgo } };
 
-      const [newUsers, newMovies, newSeries, totalUsers, totalMovies, totalSeries] = await Promise.all([
+      const [newUsers, newMovies, newSeries, totalUsers, totalMovies, totalSeries, reqMovies, reqSeries] = await Promise.all([
         User.countDocuments(query),
         Movie.countDocuments(query),
         Series.countDocuments(query),
         User.countDocuments(),
         Movie.countDocuments(),
         Series.countDocuments(),
+        AccessLog.countDocuments({ ...logQuery, contentType: "Movie" }),
+        AccessLog.countDocuments({ ...logQuery, contentType: "Series" }),
       ]);
 
       const message = `
 📊 <b>Haftalik Statistika (Oxirgi 7 kun)</b>
 
 👤 <b>Yangi foydalanuvchilar:</b> +${newUsers}
-🎞 <b>Yangi filmlar:</b> +${newMovies}
-📺 <b>Yangi seriallar:</b> +${newSeries}
+🎞 <b>Yangi filmlar (DB):</b> +${newMovies}
+📺 <b>Yangi seriallar (DB):</b> +${newSeries}
+
+🎯 <b>Haftalik Filmlar olinishi:</b> ${reqMovies} ta so'rov
+🎯 <b>Haftalik Seriallar olinishi:</b> ${reqSeries} ta so'rov
 
 =================
 📈 <b>Umumiy ko'rsatkichlar:</b>
