@@ -130,7 +130,7 @@ export const sendJoinWarning = async (ctx) => {
   );
 };
 
-export const generateInteractiveKeyboard = (item, isInWatchlist, isAdmin) => {
+export const generateInteractiveKeyboard = async (ctx, item, isInWatchlist, isAdmin) => {
   const keyboard = [];
 
   if (isAdmin) {
@@ -158,6 +158,30 @@ export const generateInteractiveKeyboard = (item, isInWatchlist, isAdmin) => {
   // Search
   keyboard.push([{ text: "Search", switch_inline_query_current_chat: "" }]);
 
+  // Share to Story
+  let videoUrl = "";
+  try {
+    if (item.teaser) {
+      const file = await ctx.telegram.getFile(item.teaser);
+      // WARNING: Passing BOT_TOKEN inside the URL exposes it strictly on the client side. 
+      // It is heavily advised to proxy this via your own server endpoint.
+      videoUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+    }
+  } catch (error) {
+    console.error("Failed to generate file URL for story sharing:", error);
+  }
+
+  if (videoUrl) {
+    // IMPORTANT: Replace this URL with your actual deployed Mini App domain (e.g. from Vercel/Netlify)
+    const MINI_APP_URL = "https://sage-mandazi-baa4d5.netlify.app/";
+    const encodedVideo = encodeURIComponent(videoUrl);
+    const encodedName = encodeURIComponent(item.name || "Kino");
+
+    keyboard.push([
+      { text: "✨ Share to Story", web_app: { url: `${MINI_APP_URL}/?video=${encodedVideo}&name=${encodedName}&movie_id=${item._id}&bot_username=${process.env.BOT_USERNAME || 'kasimkhujaevabot'}` } },
+    ]);
+  }
+
   return keyboard;
 };
 
@@ -178,13 +202,13 @@ export const getWatchlistToggleButton = (movieId, isAdded) => {
     inline_keyboard: [
       [
         {
-          text: isAdded ? "Remove from Watch List 🗑" : "📌 Add to Watch List",
+          text: isAdded ? "💔 Remove" : "❤️ Add to Watchlist",
           callback_data: isAdded ? "remove_later_${movieId}" : "save_later_${movieId}",
         },
       ],
       [
         {
-          text: "Search",
+          text: "🔍 Search",
           switch_inline_query_current_chat: "",
         },
       ],

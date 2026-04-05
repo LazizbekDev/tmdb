@@ -67,7 +67,7 @@ export async function handleStart(ctx) {
            await notifyAdminContentAccessed(ctx, ctx.message.from, movie, "Movie");
         }
 
-        const keyboard = generateInteractiveKeyboard(movie, isInWatchlist, isAdmin);
+        const keyboard = await generateInteractiveKeyboard(ctx, movie, isInWatchlist, isAdmin);
 
         await ctx.replyWithVideo(movie.movieUrl, {
           caption: caption(movie, false),
@@ -115,7 +115,7 @@ export async function handleStart(ctx) {
           }
         }
 
-        const keyboard = generateInteractiveKeyboard(series, isInWatchlist, isAdmin);
+        const keyboard = await generateInteractiveKeyboard(ctx, series, isInWatchlist, isAdmin);
         
         await ctx.reply(
           `🎬 <b>${series.name}</b>\n📚 Season: <b>${series.series[0]?.seasonNumber || 1}</b>\n🎞 Total Episodes: <b>${totalEpisodes}</b>\n\nUse /list to explore more or hit the button below to search.`,

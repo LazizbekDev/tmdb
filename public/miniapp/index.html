@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Share to Story</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--tg-theme-bg-color, #1a1a1a);
+      color: var(--tg-theme-text-color, #ffffff);
+      font-family: 'Inter', system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .container {
+      max-width: 360px;
+      padding: 40px 20px;
+    }
+
+    .loader {
+      border: 5px solid rgba(255,255,255,0.15);
+      border-top: 5px solid var(--tg-theme-button-color, #00aaff);
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 28px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 12px;
+      line-height: 1.2;
+    }
+
+    p {
+      font-size: 17px;
+      opacity: 0.75;
+      margin: 0 0 40px;
+    }
+
+    .share-button {
+      width: 100%;
+      padding: 18px 24px;
+      font-size: 18px;
+      font-weight: 600;
+      background: var(--tg-theme-button-color, #00aaff);
+      color: #ffffff;
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0, 170, 255, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .share-button:active {
+      transform: scale(0.95);
+      box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4);
+    }
+
+    .emoji {
+      font-size: 42px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="emoji">📸</span>
+    
+    <div class="loader" id="loader"></div>
+    
+    <h1 id="title">Ready to Share?</h1>
+    <p id="subtitle">Your video will open directly in Stories</p>
+
+    <button class="share-button" id="shareBtn" style="display: none;">
+      ✨ Share to Story
+    </button>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // Get parameters from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoUrl    = urlParams.get('video');
+    const movieName   = urlParams.get('name') ? decodeURIComponent(urlParams.get('name')) : 'Movie';
+    const botUsername = urlParams.get('bot_username') || 'kasimkhujaevabot';
+    const movieId     = urlParams.get('movie_id') || '';
+
+    const loader   = document.getElementById('loader');
+    const title    = document.getElementById('title');
+    const subtitle = document.getElementById('subtitle');
+    const shareBtn = document.getElementById('shareBtn');
+
+    if (!videoUrl) {
+      title.textContent = "Error";
+      subtitle.textContent = "Video not found";
+      loader.style.display = 'none';
+      return;
+    }
+
+    // Show beautiful UI after small delay
+    setTimeout(() => {
+      loader.style.display = 'none';
+      title.textContent = movieName;
+      subtitle.textContent = "Tap below to post this teaser to your Story";
+      shareBtn.style.display = 'block';
+    }, 650);
+
+    // Button click handler
+    shareBtn.addEventListener('click', () => {
+      const caption = `🔥 ${movieName} teaser!\n\nWatch full movie in our bot 👇`;
+
+      try {
+        tg.shareToStory(videoUrl, {
+          text: caption,
+          widget_link: {
+            url: `https://t.me/${botUsername}?start=${movieId}`,
+            name: "Watch in Bot 🚀"
+          }
+        });
+
+        // Close Mini App after Story editor opens
+        setTimeout(() => tg.close(), 900);
+      } catch (e) {
+        console.error("shareToStory error:", e);
+        tg.showAlert("Something went wrong. Please try again.");
+      }
+    });
+  </script>
+</body>
+</html>
