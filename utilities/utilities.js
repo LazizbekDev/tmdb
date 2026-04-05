@@ -143,17 +143,11 @@ export const generateInteractiveKeyboard = async (ctx, item, isInWatchlist, isAd
   // Watchlist toggle
   keyboard.push([
     {
-      text: isInWatchlist ? "Remove from Watch List 🗑" : "📌 Add to Watch List",
+      text: isInWatchlist ? "💔 Remove" : "❤️ Add to Watchlist",
       callback_data: isInWatchlist ? `remove_later_${item._id}` : `save_later_${item._id}`,
     },
   ]);
 
-  // Similar Movies
-  if (process.env.WEB) {
-    keyboard.push([
-      { text: "Similar Movies 🎥", web_app: { url: `${process.env.WEB}movie/${item._id}/similar` } },
-    ]);
-  }
 
   // Search
   keyboard.push([{ text: "Search", switch_inline_query_current_chat: "" }]);
