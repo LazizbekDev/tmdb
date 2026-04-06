@@ -1,151 +1,316 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Share to Story</title>
+  <title>Share Story | TMDB</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-    body, html {
+    :root {
+      --color-bg: #030014;
+      --color-blob-1: #4318FF;
+      --color-blob-2: #00E5FF;
+      --color-blob-3: #FF00A0;
+      --glass-bg: rgba(255, 255, 255, 0.02);
+      --glass-border: rgba(255, 255, 255, 0.05);
+      --text-main: #FFFFFF;
+      --text-muted: rgba(255, 255, 255, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+
+    body, html {
       width: 100%;
       height: 100%;
-      background: var(--tg-theme-bg-color, #1a1a1a);
-      color: var(--tg-theme-text-color, #ffffff);
-      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--color-bg);
+      color: var(--text-main);
+      font-family: 'Poppins', sans-serif;
       display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
       overflow: hidden;
+      position: relative;
     }
 
-    .container {
-      max-width: 360px;
-      padding: 40px 20px;
+    /* === Liquid AI Aura Effect === */
+    .aura-container {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      z-index: 0;
+      filter: blur(60px);
     }
 
-    .loader {
-      border: 5px solid rgba(255,255,255,0.15);
-      border-top: 5px solid var(--tg-theme-button-color, #00aaff);
+    .liquid-blob {
+      position: absolute;
       border-radius: 50%;
-      width: 56px;
-      height: 56px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 28px;
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      animation: morph 8s ease-in-out infinite, move 15s infinite alternate;
     }
 
-    h1 {
-      font-size: 28px;
-      font-weight: 600;
-      margin: 0 0 12px;
-      line-height: 1.2;
+    .blob-1 {
+      width: 400px; height: 400px;
+      background: var(--color-blob-1);
+      top: -10%; left: -20%;
+      animation-delay: 0s, 0s;
     }
 
-    p {
-      font-size: 17px;
-      opacity: 0.75;
-      margin: 0 0 40px;
+    .blob-2 {
+      width: 350px; height: 350px;
+      background: var(--color-blob-2);
+      bottom: -10%; right: -10%;
+      animation-delay: -2s, -4s;
+      animation-direction: alternate-reverse;
     }
 
-    .share-button {
-      width: 100%;
-      padding: 18px 24px;
-      font-size: 18px;
-      font-weight: 600;
-      background: var(--tg-theme-button-color, #00aaff);
-      color: #ffffff;
-      border: none;
-      border-radius: 16px;
-      box-shadow: 0 8px 25px rgba(0, 170, 255, 0.3);
-      transition: all 0.2s ease;
+    .blob-3 {
+      width: 300px; height: 300px;
+      background: var(--color-blob-3);
+      top: 30%; left: 40%;
+      animation-delay: -4s, -2s;
     }
 
-    .share-button:active {
-      transform: scale(0.95);
-      box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4);
+    /* Shape-shifting liquid animation */
+    @keyframes morph {
+      0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+      50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+      100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
     }
 
-    .emoji {
-      font-size: 42px;
-      margin-bottom: 16px;
-      display: block;
+    @keyframes move {
+      0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      50% { transform: translate(10vw, 5vh) scale(1.1) rotate(90deg); }
+      100% { transform: translate(-5vw, 15vh) scale(0.9) rotate(180deg); }
+    }
+
+    /* === Glassmorphism UI === */
+    .glass-card {
+      position: relative;
+      z-index: 10;
+      width: 85%;
+      max-width: 340px;
+      padding: 45px 30px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 30px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    @keyframes slideUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* === Liquid Loader === */
+    .loader-wrapper {
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+
+    .liquid-loader {
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--color-blob-2), var(--color-blob-3));
+      animation: spin 1.5s linear infinite, morph 3s ease-in-out infinite;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      100% { transform: rotate(360deg); }
     }
+
+    /* === Typography === */
+    .icon-wrapper {
+      font-size: 54px;
+      margin-bottom: 15px;
+      line-height: 1;
+      display: none; /* Hidden until loaded */
+      filter: drop-shadow(0 0 15px rgba(255,255,255,0.3));
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #fff, #b4c6fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 35px;
+      font-weight: 300;
+      line-height: 1.4;
+    }
+
+    /* === Liquid Premium Button === */
+    .btn-share {
+      width: 100%;
+      padding: 18px 24px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      display: none;
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-share::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(120deg, var(--color-blob-1), var(--color-blob-3));
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: -1;
+    }
+
+    .btn-share:hover {
+      transform: translateY(-3px);
+      border-color: transparent;
+      box-shadow: 0 15px 30px rgba(255, 0, 160, 0.3);
+    }
+
+    .btn-share:hover::before {
+      opacity: 1;
+    }
+
+    .btn-share:active {
+      transform: translateY(1px);
+    }
+
   </style>
 </head>
-<body>
-  <div class="container">
-    <span class="emoji">📸</span>
-    
-    <div class="loader" id="loader"></div>
-    
-    <h1 id="title">Ready to Share?</h1>
-    <p id="subtitle">Your video will open directly in Stories</p>
 
-    <button class="share-button" id="shareBtn" style="display: none;">
-      ✨ Share to Story
-    </button>
+<body>
+  <div class="aura-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
   </div>
+
+  <main class="glass-card">
+    <div class="loader-wrapper" id="loaderContainer">
+      <div class="liquid-loader"></div>
+    </div>
+    
+    <div class="icon-wrapper" id="statusIcon">🎬</div>
+
+    <h1 id="title">Preparing Asset</h1>
+    <p id="subtitle">Generating your cinematic story...</p>
+
+    <button class="btn-share" id="shareBtn">
+      Share to Story
+    </button>
+  </main>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
+    tg.setHeaderColor('#030014');
+    tg.setBackgroundColor('#030014');
 
-    // Get parameters from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoUrl    = urlParams.get('video');
-    const movieName   = urlParams.get('name') ? decodeURIComponent(urlParams.get('name')) : 'Movie';
-    const botUsername = urlParams.get('bot_username') || 'kasimkhujaevabot';
-    const movieId     = urlParams.get('movie_id') || '';
+    const elements = {
+      loader: document.getElementById('loaderContainer'),
+      icon: document.getElementById('statusIcon'),
+      title: document.getElementById('title'),
+      subtitle: document.getElementById('subtitle'),
+      shareBtn: document.getElementById('shareBtn')
+    };
 
-    const loader   = document.getElementById('loader');
-    const title    = document.getElementById('title');
-    const subtitle = document.getElementById('subtitle');
-    const shareBtn = document.getElementById('shareBtn');
-
-    if (!videoUrl) {
-      title.textContent = "Error";
-      subtitle.textContent = "Video not found";
-      loader.style.display = 'none';
-      return;
-    }
-
-    // Show beautiful UI after small delay
-    setTimeout(() => {
-      loader.style.display = 'none';
-      title.textContent = movieName;
-      subtitle.textContent = "Tap below to post this teaser to your Story";
-      shareBtn.style.display = 'block';
-    }, 650);
-
-    // Button click handler
-    shareBtn.addEventListener('click', () => {
-      const caption = `🔥 ${movieName} teaser!\n\nWatch full movie in our bot 👇`;
-
+    const parseParams = () => {
       try {
-        tg.shareToStory(videoUrl, {
-          text: caption,
-          widget_link: {
-            url: `https://t.me/${botUsername}?start=${movieId}`,
-            name: "Watch in Bot 🚀"
-          }
-        });
-
-        // Close Mini App after Story editor opens
-        setTimeout(() => tg.close(), 900);
+        const urlParams = new URLSearchParams(window.location.search);
+        return {
+          videoUrl: urlParams.get('video'),
+          movieName: urlParams.get('name') ? decodeURIComponent(urlParams.get('name')) : 'Movie'
+        };
       } catch (e) {
-        console.error("shareToStory error:", e);
-        tg.showAlert("Something went wrong. Please try again.");
+        return { videoUrl: null, movieName: 'Movie' };
       }
-    });
+    };
+
+    const init = () => {
+      const { videoUrl, movieName } = parseParams();
+
+      if (!videoUrl) {
+        showErrorState();
+        return;
+      }
+
+      setTimeout(() => {
+        showReadyState(movieName);
+        setTimeout(() => elements.shareBtn.click(), 500);
+      }, 1200);
+
+      elements.shareBtn.addEventListener('click', () => {
+        if (tg.shareToStory) {
+          try {
+            tg.shareToStory(videoUrl, { text: `🔥 Now Watching: ${movieName}` });
+          } catch (error) {
+            console.error("Story API Error:", error);
+          }
+        } else {
+          showErrorState("Update Required", "Your Telegram app does not support Stories API.");
+        }
+      });
+    };
+
+    const showReadyState = (movieName) => {
+      elements.loader.style.display = 'none';
+      elements.icon.style.display = 'block';
+      elements.title.textContent = 'Ready to Share!';
+      elements.subtitle.textContent = movieName;
+      elements.shareBtn.style.display = 'block';
+    };
+
+    const showErrorState = (
+      titleText = "Action Failed", 
+      subText = "Media link is invalid or missing."
+    ) => {
+      elements.loader.style.display = 'none';
+      elements.icon.style.display = 'block';
+      elements.icon.textContent = '⚠️';
+      elements.title.textContent = titleText;
+      elements.subtitle.textContent = subText;
+    };
+
+    init();
   </script>
 </body>
+
 </html>

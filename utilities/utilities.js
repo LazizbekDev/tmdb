@@ -166,13 +166,18 @@ export const generateInteractiveKeyboard = async (ctx, item, isInWatchlist, isAd
   }
 
   if (videoUrl) {
-    // IMPORTANT: Replace this URL with your actual deployed Mini App domain (e.g. from Vercel/Netlify)
-    const MINI_APP_URL = "https://sage-mandazi-baa4d5.netlify.app/";
+    const MINI_APP_URL = "https://sage-mandazi-baa4d5.netlify.app";
     const encodedVideo = encodeURIComponent(videoUrl);
     const encodedName = encodeURIComponent(item.name || "Kino");
 
+    // video parametrini hash orqali yuboring
     keyboard.push([
-      { text: "✨ Share to Story", web_app: { url: `${MINI_APP_URL}/?video=${encodedVideo}&name=${encodedName}&movie_id=${item._id}&bot_username=${process.env.BOT_USERNAME || 'kasimkhujaevabot'}` } },
+      {
+        text: "✨ Share to Story",
+        web_app: {
+          url: `${MINI_APP_URL}?video=${encodedVideo}&name=${encodedName}&movie_id=${item._id}&bot_username=${process.env.BOT_USERNAME || 'kasimkhujaevabot'}`
+        }
+      },
     ]);
   }
 
