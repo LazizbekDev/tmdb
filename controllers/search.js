@@ -1,6 +1,7 @@
 import Movie from "../model/MovieModel.js";
 import Series from "../model/SeriesModel.js";
 import { cleanText } from "../utilities/utilities.js";
+import { getAiSuggestions } from "../utilities/aiSearch.js";
 
 export default async function search(ctx) {
     const query = ctx.inlineQuery.query;
@@ -14,10 +15,47 @@ export default async function search(ctx) {
             ],
         };
 
-        const [movies, seriesList] = await Promise.all([
+        let [movies, seriesList] = await Promise.all([
             Movie.find(queryObj).lean(),
             Series.find(queryObj).lean(),
         ]);
+
+        // If no results, try AI suggestions
+        if (movies.length === 0 && seriesList.length === 0) {
+            const aiData = await getAiSuggestions(query);
+            if (aiData && (aiData.titles.length > 0 || aiData.genres.length > 0)) {
+                // 1. Try searching by AI-suggested titles
+                const aiTitleQuery = {
+                    $or: aiData.titles.map(k => ({
+                        cleanedName: { $regex: cleanText(k), $options: "i" }
+                    }))
+                };
+                
+                const [aiMovies, aiSeries] = await Promise.all([
+                    Movie.find(aiTitleQuery).lean(),
+                    Series.find(aiTitleQuery).lean(),
+                ]);
+                
+                if (aiMovies.length > 0 || aiSeries.length > 0) {
+                    movies = aiMovies;
+                    seriesList = aiSeries;
+                } else if (aiData.genres.length > 0) {
+                    // 2. Fallback to genre-based search
+                    const genreRegex = new RegExp(aiData.genres.join("|"), "i");
+                    const aiGenreQuery = {
+                        cleanedKeywords: { $regex: genreRegex }
+                    };
+                    
+                    const [genreMovies, genreSeries] = await Promise.all([
+                        Movie.find(aiGenreQuery).limit(10).lean(),
+                        Series.find(aiGenreQuery).limit(10).lean(),
+                    ]);
+                    
+                    movies = genreMovies;
+                    seriesList = genreSeries;
+                }
+            }
+        }
 
         const mapItem = (item, typeName) => ({
             type: "video",
@@ -41,7 +79,7 @@ export default async function search(ctx) {
             ...seriesList.map(s => mapItem(s, "Series")),
         ];
 
-        // If no results, add a "request movie" suggestion
+        // If still no results, add a "request movie" suggestion
         if (combinedResults.length === 0) {
             combinedResults.push({
                 type: "article",

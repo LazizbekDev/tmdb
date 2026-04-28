@@ -10,6 +10,7 @@ import saveSeries from "../series/saveSeries.js";
 import saveNewSeason from "../series/seasons/saveSeason.js";
 import info from "../add_new/info.js";
 import { sendUpdateMessage } from "../../utilities/updateFilm.js";
+import { getAiSuggestions } from "../../utilities/aiSearch.js";
 
 export async function handleTextInput(ctx, bot) {
   const userId = ctx.from.id;
@@ -150,7 +151,7 @@ async function searchAndReply(ctx, messageText, bot) {
       ],
     };
 
-    const [movies, seriesList] = await Promise.all([
+    let [movies, seriesList] = await Promise.all([
       Movie.find(query).select("name caption keywords").lean(),
       Series.find(query).select("name caption keywords").lean(),
     ]);
@@ -161,7 +162,50 @@ async function searchAndReply(ctx, messageText, bot) {
       return;
     }
 
-    await ctx.reply("😔 Nothing found in our database.");
+    // No direct matches, try AI suggestions
+    await ctx.reply("🔍 Searching with AI for better results...");
+    const aiData = await getAiSuggestions(messageText);
+
+    if (aiData && (aiData.titles.length > 0 || aiData.genres.length > 0)) {
+      // 1. First try searching by titles suggested by AI
+      const aiTitleQuery = {
+        $or: aiData.titles.map(k => ({
+          cleanedName: { $regex: cleanText(k), $options: "i" }
+        }))
+      };
+
+      const [aiMovies, aiSeries] = await Promise.all([
+        Movie.find(aiTitleQuery).select("name caption keywords").lean(),
+        Series.find(aiTitleQuery).select("name caption keywords").lean(),
+      ]);
+
+      if (aiMovies.length > 0 || aiSeries.length > 0) {
+        await ctx.reply(`✨ We don't have exactly what you're looking for, but you might like these:`);
+        await handlePagination(ctx, bot, page, Movie, Series, limit, aiTitleQuery);
+        return;
+      }
+
+      // 2. If no title matches, try searching by genres suggested by AI
+      if (aiData.genres.length > 0) {
+        const genreRegex = new RegExp(aiData.genres.join("|"), "i");
+        const aiGenreQuery = {
+          cleanedKeywords: { $regex: genreRegex }
+        };
+
+        const [genreMovies, genreSeries] = await Promise.all([
+          Movie.find(aiGenreQuery).select("name caption keywords").limit(10).lean(),
+          Series.find(aiGenreQuery).select("name caption keywords").limit(10).lean(),
+        ]);
+
+        if (genreMovies.length > 0 || genreSeries.length > 0) {
+          await ctx.reply(`🎬 We couldn't find that specific movie, but here are some similar ones in the same genres:`);
+          await handlePagination(ctx, bot, page, Movie, Series, limit, aiGenreQuery);
+          return;
+        }
+      }
+    }
+
+    await ctx.reply("😔 Nothing found even with AI. You can use /list to browse or send a request!");
 
   } catch (error) {
     console.error("🔍 Search error:", error);

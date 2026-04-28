@@ -7,8 +7,37 @@ import { generateHeader } from "../list/formatList.js";
 import User from "../../model/User.js";
 import AccessLog from "../../model/AccessLog.js";
 import { handlePagination } from "../../utilities/utilities.js";
+import { getTrendingContent } from "../../utilities/trending.js";
 
 export function handleCommands(bot) {
+  bot.command("trending", async (ctx) => {
+    try {
+      const trending = await getTrendingContent(5, 7);
+      if (trending.length === 0) {
+        return ctx.reply("No trending content found for this week.");
+      }
+
+      let message = "<b>🔥 TRENDING THIS WEEK</b>\n\n";
+      const keyboard = [];
+
+      trending.forEach((item, index) => {
+        const icon = item.type === "movie" ? "🎥" : "🎬";
+        message += `${index + 1}. ${icon} <b>${item.data.name}</b> (${item.count} views)\n`;
+        keyboard.push([{ text: `${icon} Watch ${item.data.name}`, url: `https://t.me/${process.env.BOT_USERNAME}?start=${item.data._id}` }]);
+      });
+
+      message += "\n<i>Check out what everyone is watching! 🍿</i>";
+
+      await ctx.reply(message, {
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: keyboard }
+      });
+    } catch (error) {
+      console.error("Error in /trending command:", error);
+      await ctx.reply("An error occurred while fetching trending content.");
+    }
+  });
+
   bot.command("list", async (ctx) => {
     try {
       const page = parseInt(ctx.match?.[1] || 1);

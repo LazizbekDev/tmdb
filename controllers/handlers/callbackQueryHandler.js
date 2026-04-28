@@ -4,7 +4,7 @@ import User from "../../model/User.js";
 import { adminNotifier } from "../../utilities/admin_notifier.js";
 import { getMovieById, sendUpdateMessage } from "../../utilities/updateFilm.js";
 import { extractGenres, handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton } from "../../utilities/utilities.js";
-import { generateHeader } from "../list/formatList.js";
+import { getTrendingContent } from "../../utilities/trending.js";
 
 export function handleCallbackQueries(bot) {
   bot.on("callback_query", async (ctx) => {
@@ -14,7 +14,29 @@ export function handleCallbackQueries(bot) {
     const chatId = ctx.callbackQuery.message.chat.id;
 
     try {
-      if (callbackData.startsWith("request_")) {
+      if (callbackData === "trending_list") {
+        const trending = await getTrendingContent(5, 7);
+        if (trending.length === 0) {
+          return ctx.answerCbQuery("No trending content found for this week.", { show_alert: true });
+        }
+
+        let message = "<b>🔥 TRENDING THIS WEEK</b>\n\n";
+        const keyboard = [];
+
+        trending.forEach((item, index) => {
+          const icon = item.type === "movie" ? "🎥" : "🎬";
+          message += `${index + 1}. ${icon} <b>${item.data.name}</b> (${item.count} views)\n`;
+          keyboard.push([{ text: `${icon} Watch ${item.data.name}`, url: `https://t.me/${process.env.BOT_USERNAME}?start=${item.data._id}` }]);
+        });
+
+        message += "\n<i>Check out what everyone is watching! 🍿</i>";
+
+        await ctx.reply(message, {
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: keyboard }
+        });
+        return ctx.answerCbQuery();
+      } else if (callbackData.startsWith("request_")) {
         const query = callbackData.replace("request_", "");
         await ctx.answerCbQuery(`✅ Your request for "${query}" has been submitted successfully!`);
         const adminMessage = `
@@ -62,38 +84,6 @@ export function handleCallbackQueries(bot) {
         const query = { _id: { $in: user.savedMovies } };
         await handlePagination(ctx, bot, pageNum, Movie, Series, 10, query, "watch_list_", generateHeader);
 
-      } else if (callbackData.startsWith("reveal_teaser_")) {
-        const movieId = callbackData.split("reveal_teaser_")[1];
-        const movie = await findContentById(Movie, Series, movieId);
-
-        if (!movie) {
-          return ctx.answerCbQuery("Movie or series not found.");
-        }
-
-        const genres = extractGenres(movie.keywords).map((g) => `#${g}`).join(" ");
-        const label = movie.__t === "Series" ? "🎬 Suggested Series" : "🎥 Suggested Movie";
-        const fullCaption = `${label}: <b>${movie.name}</b>\n\n${movie.caption}\n\n🎭 <b>Genres:</b> ${genres}`;
-
-        await bot.telegram.editMessageMedia(
-          ctx.from.id,
-          messageId,
-          undefined,
-          {
-            type: "video",
-            media: movie.teaser,
-            caption: fullCaption,
-            parse_mode: "HTML",
-          },
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: "🍿 Watch Now", url: `https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}` }],
-                [{ text: "📌 add to Watch List", callback_data: `save_later_${movie._id}` }]
-              ],
-            },
-          }
-        );
-        await ctx.answerCbQuery();
       } else if (callbackData.startsWith("delete_")) {
         const movieId = callbackData.split("delete_")[1];
         if (!checkIsAdmin(ctx)) {

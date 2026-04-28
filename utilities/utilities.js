@@ -19,7 +19,6 @@ export function extractGenres(keywords) {
       }
     }
   }
-  console.log("Extracted genres:", tags);
   return tags;
 }
 

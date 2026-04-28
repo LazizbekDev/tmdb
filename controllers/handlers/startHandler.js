@@ -8,6 +8,9 @@ import { notifyAdminContentAccessed } from "../../utilities/admin_notifier.js";
 import { sendJoinWarning, generateInteractiveKeyboard } from "../../utilities/utilities.js";
 
 export async function handleStart(ctx) {
+  // Clear session step
+  if (ctx.session) delete ctx.session.step;
+
   const userId = ctx.message.from.id;
   const payload = ctx.startPayload;
   const userFirstName = ctx.message.from.first_name;
@@ -134,10 +137,14 @@ export async function handleStart(ctx) {
       }
 
       return ctx.reply(
-        "Sorry, the movie or series you are looking for does not exist.\nClick /list to see the table of content",
+        "<b>⚠️ CONTENT NOT FOUND</b>\n\nSorry, the movie or series you are looking for doesn't exist or has been removed.\n\nTry searching for something else or explore our full library! 🍿",
         {
+          parse_mode: "HTML",
           reply_markup: {
-            inline_keyboard: [[{ text: "Search", switch_inline_query_current_chat: "" }]],
+            inline_keyboard: [
+              [{ text: "🔍 Search Again", switch_inline_query_current_chat: "" }],
+              [{ text: "📜 Browse Movie List", callback_data: "page_1" }],
+            ],
           },
         }
       );

@@ -1,23 +1,37 @@
 const startMessages = {
-  subscribed: (firstName, isAdmin) => ({
-    text: `<b>👋 Hey ${firstName},</b>
+  subscribed: (firstName, isAdmin, botUsername) => ({
+    text: `<b>👋 Welcome, ${firstName}!</b>
 
-<i>🔍 Just type the movie name, and I'll search it for you instantly!
-Or, if you prefer, tap the search button below to start looking for movies.
-🎥 Want a full list of films? Just hit /list to explore!</i>
+<i>"Just stuff I watch when I can’t sleep
+Call it piracy, I call it preservation
+Leaked? Maybe. Worth it? Definitely
 
-Enjoy your next favorite watch!🍿`,
+No promises, no schedule, just movies
+Join or scroll, we good either way"</i>
+
+──────────────────
+<b>🚀 HOW TO USE:</b>
+
+🔍 <b>Search:</b> Just type the movie name or tap the button below.
+🎞 <b>Explore:</b> Use /list to see our full library.
+🎥 <b>Inline:</b> Type <code>@${botUsername}</code> in any chat to share movies!
+
+<b>Enjoy your next favorite watch! 🍿</b>`,
     keyboard: [
-      [{ text: "Search", switch_inline_query_current_chat: "" }],
+      [{ text: "🔍 Start Searching", switch_inline_query_current_chat: "" }],
+      [
+        { text: "🔥 Trending", callback_data: "trending_list" },
+        { text: "📜 Movie List", callback_data: "page_1" }
+      ],
       [
         {
-          text: isAdmin ? "Add new" : "Send feedback",
+          text: isAdmin ? "➕ Add Content" : "💬 Send Feedback",
           callback_data: isAdmin ? "add" : "feedback",
         },
       ],
       [
         {
-          text: "🎬 Send Movie Request",
+          text: "🎬 Request a Movie",
           callback_data: "send_movie_request",
         },
       ],
@@ -25,27 +39,33 @@ Enjoy your next favorite watch!🍿`,
   }),
 
   notSubscribed: (firstName, botUsername) => `
-👋 <b>Hello ${firstName}!</b>
+<b>👋 Hello ${firstName}!</b>
 
-Here's how you can use this bot:
+<i>"Just stuff I watch when I can’t sleep
+Call it piracy, I call it preservation
+Leaked? Maybe. Worth it? Definitely
 
-1️⃣ Use the <b>Search</b> feature to find movies or series. 
-   - Type <code>@${botUsername}</code> and movie or series name in any chat, and results will appear instantly.
+No promises, no schedule, just movies
+Join or scroll, we good either way"</i>
 
-2️⃣ Share your favorites!
-   - Search for a movie/series and send it to friends or groups directly using inline search.
+──────────────────
+<b>🎥 BOT FEATURES:</b>
 
-3️⃣ Request Content:
-   - Can't find something? Use the inline search feature to request a movie or series.
+1️⃣ <b>Instant Search:</b> Find any movie or series in seconds.
+2️⃣ <b>Quick Sharing:</b> Type <code>@${botUsername}</code> in any chat to share.
+3️⃣ <b>Requests:</b> Can't find something? Let us know!
 
-Enjoy unlimited entertainment for free! 🎥🍿
+<b>Join us to unlock everything! 🎥🍿</b>
 `,
 
   joinPrompt: (channelUsername) => `
-🔔 To get the latest updates and full access, consider joining our channel:
-👉 <a href="https://t.me/${channelUsername}">Join Now</a>
+<b>🔔 ACCESS RESTRICTED</b>
 
-After joining, click the "Check Membership" button to unlock full access.
+To get the latest updates and full access to our library, please join our channel:
+
+👉 <b><a href="https://t.me/${channelUsername}">JOIN OUR CHANNEL</a></b>
+
+<i>After joining, tap the button below to verify.</i>
 `,
 };
 

@@ -1,6 +1,8 @@
 import cron from "node-cron";
 import SuggestionLog from "./model/suggestion_log.js";
 import User from "./model/User.js";
+import Movie from "./model/MovieModel.js";
+import Series from "./model/SeriesModel.js";
 import { suggestMovie } from "./controllers/suggestion.js";
 
 export function setupCronJobs(bot) {
@@ -47,6 +49,50 @@ export function setupCronJobs(bot) {
       }
     } catch (err) {
       console.error("❌ Cron job failed:", err);
+    }
+  });
+
+  // Watchlist Reminders (Every 3 days at 15:00)
+  cron.schedule("0 15 */3 * *", async () => {
+    console.log("⏰ Running watchlist reminder job...");
+    try {
+      const users = await User.find({ 
+        savedMovies: { $exists: true, $not: { $size: 0 } },
+        inActive: false 
+      });
+
+      for (const user of users) {
+        try {
+          const randomId = user.savedMovies[Math.floor(Math.random() * user.savedMovies.length)];
+          const movie = await Movie.findById(randomId) || await Series.findById(randomId);
+
+          if (movie) {
+            await bot.telegram.sendMessage(
+              user.telegramId,
+              `🍿 <b>Don't forget your watchlist!</b>\n\nYou saved <b>${movie.name}</b> a while ago. Want to watch it now?\n\n🎬 <i>Tap the button below to start!</i>`,
+              {
+                parse_mode: "HTML",
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: "▶️ Watch Now", url: `https://t.me/${process.env.BOT_USERNAME}?start=${movie._id}` }],
+                    [{ text: "📜 See Full Watchlist", callback_data: "watch_list_1" }]
+                  ]
+                }
+              }
+            );
+          }
+          // Small delay to avoid hitting Telegram limits
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (err) {
+          if (err.code === 403) {
+             user.inActive = true;
+             await user.save();
+          }
+        }
+      }
+      console.log("✅ Watchlist reminders sent.");
+    } catch (err) {
+      console.error("❌ Watchlist reminder job failed:", err);
     }
   });
 

@@ -21,25 +21,34 @@ export const suggestMovie = async (bot, userId) => {
 
     const accessedIds = user.accessedMovies || [];
     const suggestedIds = user.suggestedMovies || [];
+    const savedIds = user.savedMovies || [];
+
+    // Barcha qiziqarli ID'larni yig'ish (accessed + saved)
+    const allInterestIds = [...new Set([...accessedIds, ...savedIds])];
 
     // Faqat keywords maydonini olish uchun optimallashtirilgan so'rov
-    const accessedMovies = await MovieModel.find(
-      { _id: { $in: accessedIds } },
+    const interestMovies = await MovieModel.find(
+      { _id: { $in: allInterestIds } },
+      { keywords: 1 }
+    );
+
+    const interestSeries = await SeriesModel.find(
+      { _id: { $in: allInterestIds } },
       { keywords: 1 }
     );
 
     // Janrlar bo'yicha vaznli hisoblash
     const keywordCount = {};
-    for (const movie of accessedMovies) {
-      const genres = extractGenres(movie.keywords);
-      for (const genre of genres) {
+    [...interestMovies, ...interestSeries].forEach(item => {
+      const genres = extractGenres(item.keywords);
+      genres.forEach(genre => {
         keywordCount[genre] = (keywordCount[genre] || 0) + 1;
-      }
-    }
+      });
+    });
 
     const sortedGenres = Object.entries(keywordCount)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3) // Eng muhim 3 ta janrni olish
+      .slice(0, 5) // Eng muhim 5 ta janrni olish (ko'proq variant uchun)
       .map(([genre]) => genre);
 
     let content = null;
@@ -55,9 +64,10 @@ export const suggestMovie = async (bot, userId) => {
         const movie = await MovieModel.findOne({
           _id: { $nin: [...suggestedIds, ...accessedIds] },
           keywords: { $elemMatch: { $regex: genreRegex } },
+          teaser: { $exists: true, $ne: "" } // Teaser borligini tekshirish
         })
           .sort({ views: -1 })
-          .select("name caption keywords year rating"); // Qo'shimcha maydonlar
+          .select("name caption keywords year rating teaser"); // teaser qo'shildi
 
         if (movie) {
           content = { type: "movie", data: movie };
@@ -68,9 +78,10 @@ export const suggestMovie = async (bot, userId) => {
         const series = await SeriesModel.findOne({
           _id: { $nin: [...suggestedIds, ...accessedIds] },
           keywords: { $elemMatch: { $regex: genreRegex } },
+          teaser: { $exists: true, $ne: "" }
         })
           .sort({ views: -1 })
-          .select("name caption keywords year rating");
+          .select("name caption keywords year rating teaser");
 
         if (series) {
           content = { type: "series", data: series };
@@ -81,13 +92,31 @@ export const suggestMovie = async (bot, userId) => {
       }
     }
 
-    // Agar janr bo'yicha topilmasa, tasodifiy kontent
+    // Agar janr bo'yicha topilmasa, tasodifiy kontent (lekin teaser bilan)
     if (!content) {
-      content = await getRandomContent([...suggestedIds, ...accessedIds]);
+      // Tasodifiy kontent tanlashda ham teaser borligini tekshiramiz
+      const randomMovie = await MovieModel.findOne({
+        _id: { $nin: [...suggestedIds, ...accessedIds] },
+        teaser: { $exists: true, $ne: "" }
+      }).sort({ views: -1 });
+
+      if (randomMovie) {
+        content = { type: "movie", data: randomMovie };
+      } else {
+        const randomSeries = await SeriesModel.findOne({
+          _id: { $nin: [...suggestedIds, ...accessedIds] },
+          teaser: { $exists: true, $ne: "" }
+        }).sort({ views: -1 });
+
+        if (randomSeries) {
+          content = { type: "series", data: randomSeries };
+        }
+      }
+
       if (!content) {
         await bot.telegram.sendMessage(
           userId,
-          "😔 We couldn't find new films for you. Try again later!",
+          "<b>😔 No new recommendations found.</b>\n\nTry exploring our /list to find something you like!",
           { parse_mode: "HTML" }
         );
         return;
@@ -95,31 +124,37 @@ export const suggestMovie = async (bot, userId) => {
     }
 
     const item = content.data;
-    const genres = (
-      sortedGenres.length ? sortedGenres : extractGenres(item.keywords)
-    )
+    const genres = extractGenres(item.keywords)
       .slice(0, 5)
       .map((g) => `#${g}`)
       .join(" ");
-    const label =
-      content.type === "series" ? "🎬 Suggested Series" : "🎥 Suggested Movie";
-    
-    // Qo'shimcha ma'lumotlar (yil va reyting)
+
+    const label = content.type === "series" ? "🎬 <b>Suggested Series</b>" : "🎥 <b>Suggested Movie</b>";
     const extraInfo = item.year ? ` (${item.year})` : "";
     const ratingInfo = item.rating ? ` ⭐ ${item.rating}/10` : "";
 
-    await bot.telegram.sendMessage(
+    const caption = `
+${label}
+🎬 <b>${item.name}${extraInfo}</b>
+${ratingInfo}
+
+${item.caption}
+
+🎭 <b>Genres:</b> ${genres}
+
+──────────────────
+🍿 <i>Tap the button below to watch the full movie/series instantly!</i>`;
+
+    // Teaserni birinchi bo'lib yuboramiz
+    await bot.telegram.sendVideo(
       userId,
-      `${label}: <b>${item.name}${extraInfo}</b>${ratingInfo}\n\n${item.caption}\n\n🎭 <b>Your type:</b> ${genres}`,
+      item.teaser,
       {
+        caption: caption,
         parse_mode: "HTML",
         reply_markup: {
           inline_keyboard: [
             [
-              {
-                text: "▶️ Show Teaser",
-                callback_data: `reveal_teaser_${item._id}`,
-              },
               {
                 text: "🍿 Watch Now",
                 url: `https://t.me/${process.env.BOT_USERNAME}?start=${item._id}`,
@@ -127,7 +162,7 @@ export const suggestMovie = async (bot, userId) => {
             ],
             [
               {
-                text: "📌 add to Watch List",
+                text: "📌 Add to Watch List",
                 callback_data: `save_later_${item._id}`,
               },
             ],
