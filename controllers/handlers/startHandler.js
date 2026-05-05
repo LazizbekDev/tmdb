@@ -1,11 +1,11 @@
-import Movie from "../../model/MovieModel.js";
-import Series from "../../model/SeriesModel.js";
-import User from "../../model/User.js";
-import AccessLog from "../../model/AccessLog.js";
-import { checkUserMembership, startMessage } from "../start.js";
-import caption from "../../utilities/caption.js";
-import { notifyAdminContentAccessed } from "../../utilities/admin_notifier.js";
-import { sendJoinWarning, generateInteractiveKeyboard } from "../../utilities/utilities.js";
+import Movie from "#model/MovieModel.js";
+import Series from "#model/SeriesModel.js";
+import User from "#model/User.js";
+import AccessLog from "#model/AccessLog.js";
+import { checkUserMembership, startMessage } from "#controllers/start.js";
+import caption from "#utilities/caption.js";
+import { notifyAdminContentAccessed } from "#utilities/admin_notifier.js";
+import { sendJoinWarning, generateInteractiveKeyboard } from "#utilities/utilities.js";
 
 export async function handleStart(ctx) {
   // Clear session step
@@ -32,25 +32,26 @@ export async function handleStart(ctx) {
         accessCount: 0,
         inActive: false,
         createdAt: new Date(),
-        watchlist: [],
+        savedMovies: [],
       });
       await user.save();
     }
 
     if (!isMember && user.accessCount >= limit) {
       return ctx.reply(
-        `🎬 You can only get a movie after joining our channel. You’ve reached your free access limit.\n\nPlease join the <a href='https://t.me/${process.env.CHANNEL_USERNAME}'>channel</a> to continue enjoying the bot!`,
+        `🎭 <b>Membership Required</b>\n\nYou've reached your free limit for today. To unlock unlimited access to our entire library of movies and series, please join our official community channel below.\n\n✨ <i>Joining takes just a second and ensures you never miss a new release!</i>`,
         {
           parse_mode: "HTML",
           reply_markup: {
             inline_keyboard: [
-              [{ text: "Join Now", url: `https://t.me/${process.env.CHANNEL_USERNAME}` }],
-              [{ text: "Check Membership", callback_data: "check_membership" }],
+              [{ text: "📢 Join Official Channel", url: `https://t.me/${process.env.CHANNEL_USERNAME}` }],
+              [{ text: "✅ I have joined", callback_data: "check_membership" }],
             ],
           },
         }
       );
     }
+
 
     if (payload) {
       const movie = await Movie.findById(payload);
@@ -102,31 +103,29 @@ export async function handleStart(ctx) {
           await notifyAdminContentAccessed(ctx, ctx.message.from, series, "Series");
         }
 
-        let totalEpisodes = 0;
-        const sortedSeasons = series.series.sort((a, b) => a.seasonNumber - b.seasonNumber);
-        
-        for (const season of sortedSeasons) {
-          totalEpisodes += season.episodes.length;
-          const sortedEpisodes = season.episodes.sort((a, b) => a.episodeNumber - b.episodeNumber);
-          
-          for (const episode of sortedEpisodes) {
-            await ctx.replyWithVideo(episode.fileId, {
-              caption: `<b>${series.name.toUpperCase()}</b>\nSeason ${season.seasonNumber}, Episode ${episode.episodeNumber}`,
-              parse_mode: "HTML",
-              protect_content: !isMember,
-            });
-          }
+        // Get the first season and first episode
+        const sortedSeasons = series.series.sort((a, b) => parseInt(a.seasonNumber) - parseInt(b.seasonNumber));
+        const firstSeason = sortedSeasons[0];
+        if (!firstSeason || !firstSeason.episodes.length) {
+           return ctx.reply("No episodes found for this series.");
         }
-
-        const keyboard = await generateInteractiveKeyboard(ctx, series, isInWatchlist, isAdmin);
         
-        await ctx.reply(
-          `🎬 <b>${series.name}</b>\n📚 Season: <b>${series.series[0]?.seasonNumber || 1}</b>\n🎞 Total Episodes: <b>${totalEpisodes}</b>\n\nUse /list to explore more or hit the button below to search.`,
-          {
-            parse_mode: "HTML",
-            reply_markup: { inline_keyboard: keyboard },
-          }
-        );
+        const sortedEpisodes = firstSeason.episodes.sort((a, b) => parseInt(a.episodeNumber) - parseInt(b.episodeNumber));
+        const firstEpisode = sortedEpisodes[0];
+
+        const { generateSeriesKeyboard } = await import("#utilities/seriesNav.js");
+        const keyboard = generateSeriesKeyboard(series._id, firstSeason.seasonNumber, firstEpisode.episodeNumber, firstSeason.episodes.length);
+        
+        // Also add the standard interactive buttons (Watchlist, Search, etc.)
+        const interactiveKeyboard = await generateInteractiveKeyboard(ctx, series, isInWatchlist, isAdmin);
+        const fullKeyboard = [...keyboard, ...interactiveKeyboard];
+
+        await ctx.replyWithVideo(firstEpisode.fileId, {
+          caption: `<b>${series.name.toUpperCase()}</b>\n\nSeason ${firstSeason.seasonNumber}, Episode ${firstEpisode.episodeNumber}\n\n<i>${series.caption || ""}</i>`,
+          parse_mode: "HTML",
+          protect_content: !isMember,
+          reply_markup: { inline_keyboard: fullKeyboard },
+        });
 
         if (!isMember && !hasAccessedBefore) {
           user.accessCount++;

@@ -1,7 +1,7 @@
 import { Telegraf } from "telegraf";
-import setupHandlers from "./controllers/handler.js";
-import setupActions from "./controllers/actions.js";
-import applySession from "./utilities/session.js";
+import setupHandlers from "#controllers/handler.js";
+import setupActions from "#controllers/actions.js";
+import applySession from "#utilities/session.js";
 
 export async function setupBot() {
   const token = process.env.BOT_TOKEN;

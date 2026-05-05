@@ -1,10 +1,10 @@
 import { config } from "dotenv";
 import express from "express";
 import cors from "cors";
-import { connect } from "./db.js";
-import { setupBot } from "./bot.js";
-import setupRoutes from "./routes/movies.js";
-import { setupCronJobs } from "./cronJobs.js";
+import { connect } from "#db.js";
+import { setupBot } from "#bot.js";
+import setupRoutes from "#routes/movies.js";
+import { setupCronJobs } from "#cronJobs.js";
 
 config();
 

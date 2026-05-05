@@ -1,21 +1,91 @@
-import Movie from "../../model/MovieModel.js";
-import Series from "../../model/SeriesModel.js";
-import User from "../../model/User.js";
-import { adminNotifier } from "../../utilities/admin_notifier.js";
-import { checkUserMembership } from "../start.js";
-import add from "./../add_new/main.js";
-import caption from "../../utilities/caption.js";
-import { handlePagination } from "../../utilities/utilities.js";
+import Movie from "#model/MovieModel.js";
+import Series from "#model/SeriesModel.js";
+import User from "#model/User.js";
+import { adminNotifier } from "#utilities/admin_notifier.js";
+import { checkUserMembership } from "#controllers/start.js";
+import add from "#controllers/add_new/main.js";
+import caption from "#utilities/caption.js";
+import { handlePagination, generateInteractiveKeyboard } from "#utilities/utilities.js";
 // import info from "../add_new/info.js";
 
 export function handleActionButtons(bot) {
   bot.action("add", add);
 
-  bot.action("add_movie", async (ctx) => {
-    await ctx.answerCbQuery("Adding a movie.");
-    await ctx.reply("Please send the video file (mp4, mkv, etc.).");
-    ctx.session.step = "awaitingVideo";
+  bot.action("ai_add_movie", async (ctx) => {
+    await ctx.answerCbQuery("Adding a movie with AI.");
+    await ctx.editMessageText("🤖 Please send the main video file (mp4, mkv, etc.) for the movie.", {
+      reply_markup: {
+        inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]]
+      }
+    });
+    ctx.session.step = "ai_movie_video";
   });
+
+  bot.action("manual_add_movie", async (ctx) => {
+    await ctx.answerCbQuery("Adding a movie manually.");
+    await ctx.editMessageText("✍️ Please send the Name of the movie.", {
+      reply_markup: {
+        inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]]
+      }
+    });
+    ctx.session.step = "manual_movie_name";
+  });
+
+  bot.action("ai_add_series", async (ctx) => {
+    await ctx.answerCbQuery("Adding a series with AI.");
+    await ctx.editMessageText("🤖 Please send the Name of the series.", {
+      reply_markup: {
+        inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]]
+      }
+    });
+    ctx.session.step = "ai_series_name";
+  });
+
+  bot.action("manual_add_series", async (ctx) => {
+    await ctx.answerCbQuery("Adding a series manually.");
+    await ctx.editMessageText("✍️ Please send the Name of the series.", {
+      reply_markup: {
+        inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]]
+      }
+    });
+    ctx.session.step = "manual_series_name";
+  });
+
+  bot.action("cancel_add", async (ctx) => {
+    await ctx.answerCbQuery("Action cancelled.");
+    delete ctx.session.step;
+    delete ctx.session.movieData;
+    delete ctx.session.seriesData;
+    await ctx.editMessageText("❌ Action cancelled successfully.");
+  });
+
+  bot.action("skip_teaser_movie", async (ctx) => {
+    // Teaser skipped for AI movie
+    await ctx.answerCbQuery("Teaser skipped.");
+    await ctx.editMessageText("Teaser skipped. Now, please send the Movie Name so AI can generate the details.");
+    ctx.session.step = "ai_movie_name";
+  });
+
+  bot.action("skip_teaser_manual_movie", async (ctx) => {
+    await ctx.answerCbQuery("Teaser skipped.");
+    await ctx.editMessageText("Teaser skipped. Saving movie...");
+    // Will implement save logic here or defer to textHandler
+    // We will call a function to save the manual movie here
+    import("#controllers/add_new/movieSave.js").then(m => m.saveManualMovie(ctx));
+  });
+
+  bot.action("skip_teaser_series", async (ctx) => {
+    await ctx.answerCbQuery("Teaser skipped.");
+    await ctx.editMessageText("Teaser skipped. Please send the video for Episode 1.");
+    ctx.session.step = "ai_series_episodes";
+  });
+
+  bot.action("done_series", async (ctx) => {
+    await ctx.answerCbQuery("Series episodes done.");
+    await ctx.editMessageText("Saving series...");
+    import("#controllers/series/saveSeries.js").then(m => m.default(ctx, ctx.session, ctx.from.id));
+  });
+
 
   bot.action(/list_page_(\d+)/, async (ctx) => {
     const page = parseInt(ctx.match[1], 10);
@@ -77,11 +147,8 @@ export function handleActionButtons(bot) {
   });
 
   bot.action("add_series", async (ctx) => {
-    await ctx.answerCbQuery("Adding a series.");
-    await ctx.reply(
-      "Please enter the series details: name | season number | caption | keywords"
-    );
-    ctx.session.step = "awaitingSeriesDetails";
+    // Keep it just in case someone clicks an old button
+    await ctx.answerCbQuery("Use the new menu.");
   });
 
   bot.action("add_season", async (ctx) => {
@@ -132,19 +199,21 @@ export function handleActionButtons(bot) {
           }
         }
 
-        await ctx.reply("Use the buttons below:", {
+        await ctx.reply("🚀 <b>Verification Successful!</b>\n\nYou're now part of our community. Use the dashboard below to explore our library, request new content, or contact our support team.", {
+          parse_mode: "HTML",
           reply_markup: {
             inline_keyboard: [
-              [{ text: "Search", switch_inline_query_current_chat: "" }],
+              [{ text: "🔍 Search Movies & Series", switch_inline_query_current_chat: "" }],
               [
                 {
-                  text: isAdmin ? "Add new" : "Send feedback",
+                  text: isAdmin ? "➕ Add New Content" : "💬 Contact Support",
                   callback_data: isAdmin ? "add" : "feedback",
                 },
               ],
+              isAdmin ? [{ text: "👥 Manage Users", callback_data: "admin_user_list_0" }] : [],
               [
                 {
-                  text: "🎬 Send Movie Request",
+                  text: "🎬 Request a Movie",
                   callback_data: "send_movie_request",
                 },
               ],
@@ -165,11 +234,45 @@ export function handleActionButtons(bot) {
     }
   });
 
+  bot.action(/admin_user_list_(\d+)/, async (ctx) => {
+    const page = parseInt(ctx.match[1], 10);
+    const { handleUserList } = await import("#utilities/userList.js");
+    await handleUserList(ctx, bot, page);
+  });
+
+  bot.action(/chat_with_(.+)/, async (ctx) => {
+    const targetUserId = ctx.match[1];
+    ctx.session.step = `chatting_with_${targetUserId}`;
+    await ctx.answerCbQuery(`Chat started with ${targetUserId}`);
+    await ctx.reply(`💬 <b>Chat Mode Enabled</b>\n\nAny message you send now will be forwarded to the user (ID: <code>${targetUserId}</code>).\n\nType <code>/endchat</code> to exit.`, {
+      parse_mode: "HTML",
+      reply_markup: {
+        inline_keyboard: [[{ text: "❌ End Chat", callback_data: "end_chat" }]]
+      }
+    });
+  });
+
+  bot.action("close_user_list", async (ctx) => {
+    await ctx.answerCbQuery();
+    await ctx.deleteMessage();
+  });
+
+  bot.action("end_chat", async (ctx) => {
+    delete ctx.session.step;
+    await ctx.answerCbQuery("Chat ended.");
+    await ctx.reply("❌ Chat session closed.");
+  });
+
   bot.action("feedback", async (ctx) => {
     try {
-      ctx.session.step = "awaitingFeedback";
-      await ctx.answerCbQuery("You can send your feedback to admin");
-      await ctx.reply("Please send your feedback.");
+      ctx.session.step = "chatting_with_admin";
+      await ctx.answerCbQuery("Support chat started.");
+      await ctx.reply("💬 <b>Admin Support Chat</b>\n\nYou can now send messages directly to our admin team. We will get back to you as soon as possible!\n\nType <code>/endchat</code> to exit.", {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [[{ text: "❌ End Chat", callback_data: "end_chat" }]]
+        }
+      });
     } catch (error) {
       console.error("Error in feedback action:", error);
       await ctx.reply(
@@ -178,4 +281,50 @@ export function handleActionButtons(bot) {
       await adminNotifier(bot, error, ctx, "Feedback action error");
     }
   });
+
+
+  bot.action(/ser_(.+)_(.+)_(.+)/, async (ctx) => {
+    try {
+      const seriesId = ctx.match[1];
+      const seasonNum = ctx.match[2];
+      const episodeNum = ctx.match[3];
+
+      const series = await Series.findById(seriesId);
+      if (!series) return ctx.answerCbQuery("Series not found.");
+
+      const season = series.series.find(s => s.seasonNumber === seasonNum);
+      if (!season) return ctx.answerCbQuery("Season not found.");
+
+      const episode = season.episodes.find(e => e.episodeNumber === episodeNum);
+      if (!episode) return ctx.answerCbQuery("Episode not found.");
+
+      await ctx.answerCbQuery(`Season ${seasonNum}, Episode ${episodeNum}`);
+
+      const { generateSeriesKeyboard } = await import("#utilities/seriesNav.js");
+      const keyboard = generateSeriesKeyboard(series._id, seasonNum, episodeNum, season.episodes.length);
+      
+      const userId = ctx.from.id;
+      const isAdmin = userId === parseInt(process.env.ADMIN_ID) || ctx.from.username?.toLowerCase() === process.env.ADMIN?.toLowerCase();
+      const user = await User.findOne({ telegramId: userId.toString() });
+      const isInWatchlist = user?.savedMovies?.includes(series._id.toString());
+      
+      const interactiveKeyboard = await generateInteractiveKeyboard(ctx, series, isInWatchlist, isAdmin);
+      const fullKeyboard = [...keyboard, ...interactiveKeyboard];
+
+      await ctx.editMessageMedia({
+        type: 'video',
+        media: episode.fileId,
+        caption: `<b>${series.name.toUpperCase()}</b>\n\nSeason ${seasonNum}, Episode ${episodeNum}\n\n<i>${series.caption || ""}</i>`,
+        parse_mode: 'HTML'
+      }, {
+        reply_markup: { inline_keyboard: fullKeyboard }
+      });
+
+    } catch (error) {
+      console.error("Error in series navigation:", error);
+      await ctx.answerCbQuery("Error loading episode.");
+    }
+  });
 }
+
+

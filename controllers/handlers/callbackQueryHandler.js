@@ -1,10 +1,11 @@
-import Movie from "../../model/MovieModel.js";
-import Series from "../../model/SeriesModel.js";
-import User from "../../model/User.js";
-import { adminNotifier } from "../../utilities/admin_notifier.js";
-import { getMovieById, sendUpdateMessage } from "../../utilities/updateFilm.js";
-import { extractGenres, handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton } from "../../utilities/utilities.js";
-import { getTrendingContent } from "../../utilities/trending.js";
+import Movie from "#model/MovieModel.js";
+import Series from "#model/SeriesModel.js";
+import User from "#model/User.js";
+import { adminNotifier } from "#utilities/admin_notifier.js";
+import { getContentById, sendUpdateMessage } from "#utilities/updateFilm.js";
+import { extractGenres, handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton } from "#utilities/utilities.js";
+import { getTrendingContent } from "#utilities/trending.js";
+import { handleUserList } from "#utilities/userList.js";
 
 export function handleCallbackQueries(bot) {
   bot.on("callback_query", async (ctx) => {
@@ -39,11 +40,13 @@ export function handleCallbackQueries(bot) {
       } else if (callbackData.startsWith("request_")) {
         const query = callbackData.replace("request_", "");
         await ctx.answerCbQuery(`✅ Your request for "${query}" has been submitted successfully!`);
+        const userLink = `<a href='tg://user?id=${ctx.from.id}'>${ctx.from.first_name}</a>`;
+        const usernameDisplay = ctx.from.username ? ` (@${ctx.from.username})` : "";
         const adminMessage = `
 🎥 <b>New Movie/Series Request</b>
 ▪️ <b>Requested Item:</b> ${query}
-▪️ <b>From User:</b> ${ctx.from.first_name} (@${ctx.from.username || "No username"})
-▪️ <b>User ID:</b> ${ctx.from.id}
+▪️ <b>From User:</b> ${userLink}${usernameDisplay}
+▪️ <b>User ID:</b> <code>${ctx.from.id}</code>
         `;
         await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, { parse_mode: "HTML" });
       } else if (callbackData.startsWith("show_")) {
@@ -85,65 +88,78 @@ export function handleCallbackQueries(bot) {
         await handlePagination(ctx, bot, pageNum, Movie, Series, 10, query, "watch_list_", generateHeader);
 
       } else if (callbackData.startsWith("delete_")) {
-        const movieId = callbackData.split("delete_")[1];
+        const contentId = callbackData.split("delete_")[1];
         if (!checkIsAdmin(ctx)) {
           return ctx.answerCbQuery("You do not have permission to delete.", { show_alert: true });
         }
 
-        ctx.session.step = `awaitingDelete_${movieId}`;
-        const movie = await Movie.findById(movieId);
-        if (!movie) {
-          return ctx.answerCbQuery("Movie not found.", { show_alert: true });
+        let content = await Movie.findById(contentId);
+        if (!content) {
+          content = await Series.findById(contentId);
         }
 
-        await ctx.answerCbQuery(`You are about to delete: ${movie.name}`);
+        if (!content) {
+          return ctx.answerCbQuery("Content not found.", { show_alert: true });
+        }
+
+        ctx.session.step = `awaitingDelete_${contentId}`;
+        await ctx.answerCbQuery(`You are about to delete: ${content.name}`);
         await ctx.reply(
-          `Please enter "<code>sudo delete ${movie.name}</code>" to confirm deletion.\nTo cancel the process, type <code>CANCEL</code>`,
+          `Please enter "<code>sudo delete ${content.name}</code>" to confirm deletion.\nTo cancel the process, type <code>CANCEL</code>`,
           { parse_mode: "HTML" }
         );
       } else if (callbackData.startsWith("update_")) {
         await ctx.answerCbQuery();
-        const movieId = callbackData.split("update_")[1];
+        const contentId = callbackData.split("update_")[1];
         if (!checkIsAdmin(ctx)) {
           return ctx.answerCbQuery("You do not have permission to update.", { show_alert: true });
         }
 
-        ctx.session.step = "name_input";
-        ctx.session.targetMovieId = movieId;
+        const content = await getContentById(contentId);
+        const isSeries = content instanceof Series;
 
-        const updateMovie = await getMovieById(movieId);
+        ctx.session.step = "name_input";
+        ctx.session.targetContentId = contentId;
+        ctx.session.isSeriesUpdate = isSeries;
+
         ctx.session.updateFields = {
-           name: updateMovie.name,
-           description: updateMovie.caption,
-           movieUrl: updateMovie.movieUrl,
-           teaser: updateMovie.teaser,
-           keywords: updateMovie.keywords,
-           fileType: updateMovie.fileType,
-           size: updateMovie.size,
-           duration: updateMovie.duration
+           name: content.name,
+           description: content.caption,
+           movieUrl: isSeries ? null : content.movieUrl,
+           teaser: content.teaser,
+           keywords: content.keywords,
+           fileType: content.fileType,
+           size: content.size,
+           duration: content.duration
         };
 
-        await sendUpdateMessage(ctx, "Please choose an option for the movie name or enter a new name:", movieId, "name");
+        await sendUpdateMessage(ctx, "Please choose an option for the name or enter a new name:", contentId, "name", isSeries);
       } else if (callbackData.startsWith("leave_name_")) {
         await ctx.answerCbQuery();
         ctx.session.step = "description_input";
-        await sendUpdateMessage(ctx, "Please choose an option for the description or enter a new description:", ctx.session.targetMovieId, "description");
+        await sendUpdateMessage(ctx, "Please choose an option for the description or enter a new description:", ctx.session.targetContentId, "description", ctx.session.isSeriesUpdate);
       } else if (callbackData.startsWith("leave_description_")) {
         await ctx.answerCbQuery();
-        ctx.session.step = "update_film";
-        await sendUpdateMessage(ctx, "Please choose an option for the film or send new Film:", ctx.session.targetMovieId, "film");
+        if (ctx.session.isSeriesUpdate) {
+           // Skip direct film update for series (it's complex to update all episodes at once)
+           ctx.session.step = "update_teaser";
+           await sendUpdateMessage(ctx, "Please choose an option for the teaser or send new teaser video to update:", ctx.session.targetContentId, "teaser", true);
+        } else {
+           ctx.session.step = "update_film";
+           await sendUpdateMessage(ctx, "Please choose an option for the film or send new Film:", ctx.session.targetContentId, "film", false);
+        }
       } else if (callbackData.startsWith("leave_film_")) {
         await ctx.answerCbQuery();
         ctx.session.step = "update_teaser";
-        await sendUpdateMessage(ctx, "Please choose an option for the Film or send new film to update", ctx.session.targetMovieId, "teaser");
+        await sendUpdateMessage(ctx, "Please choose an option for the teaser or send new teaser video to update:", ctx.session.targetContentId, "teaser", ctx.session.isSeriesUpdate);
       } else if (callbackData.startsWith("leave_teaser_")) {
         await ctx.answerCbQuery();
         ctx.session.step = "keywords_input";
-        await sendUpdateMessage(ctx, "Please choose an option for the teaser or send new teaser video to update:", ctx.session.targetMovieId, "keywords");
+        await sendUpdateMessage(ctx, "Please choose an option for the keywords or send new keywords to update:", ctx.session.targetContentId, "keywords", ctx.session.isSeriesUpdate);
       } else if (callbackData.startsWith("leave_keywords_")) {
         await ctx.answerCbQuery();
         delete ctx.session.step;
-        await sendUpdateMessage(ctx, "Update complete! Press to save changes:", ctx.session.targetMovieId, "save");
+        await sendUpdateMessage(ctx, "Update complete! Press to save changes:", ctx.session.targetContentId, "save", ctx.session.isSeriesUpdate);
       } else if (callbackData.startsWith("save_later_")) {
         const movieId = callbackData.split("save_later_")[1];
         const movie = await findContentById(Movie, Series, movieId);
@@ -182,27 +198,31 @@ export function handleCallbackQueries(bot) {
         }
       } else if (callbackData.startsWith("save_")) {
         await ctx.answerCbQuery();
-        const movieId = callbackData.split("save_")[1];
-        const updateMovie = await getMovieById(movieId);
+        const contentId = callbackData.split("save_")[1];
+        const content = await getContentById(contentId);
         const fields = ctx.session.updateFields || {};
 
-        updateMovie.name = fields.name;
-        updateMovie.caption = fields.description;
-        updateMovie.movieUrl = fields.movieUrl || updateMovie.movieUrl;
-        updateMovie.fileType = fields.fileType || updateMovie.fileType;
-        updateMovie.size = fields.size || updateMovie.size;
-        updateMovie.duration = fields.duration || updateMovie.duration;
-        updateMovie.teaser = fields.teaser || updateMovie.teaser;
-        updateMovie.keywords = fields.keywords || updateMovie.keywords;
+        content.name = fields.name;
+        content.caption = fields.description;
+        content.teaser = fields.teaser || content.teaser;
+        content.keywords = fields.keywords || content.keywords;
+
+        if (!(content instanceof Series)) {
+          content.movieUrl = fields.movieUrl || content.movieUrl;
+          content.fileType = fields.fileType || content.fileType;
+          content.size = fields.size || content.size;
+          content.duration = fields.duration || content.duration;
+        }
         
-        await updateMovie.save();
-        await ctx.reply(`Movie "${updateMovie.name}" updated successfully!`, {
+        await content.save();
+        await ctx.reply(`${content instanceof Series ? "Series" : "Movie"} "${content.name}" updated successfully!`, {
           parse_mode: "HTML",
           reply_markup: { remove_keyboard: true },
         });
         delete ctx.session.step;
         delete ctx.session.updateFields;
-        delete ctx.session.targetMovieId;
+        delete ctx.session.targetContentId;
+        delete ctx.session.isSeriesUpdate;
       }
     } catch (error) {
       console.error("Error handling callback query:", error);
@@ -211,3 +231,4 @@ export function handleCallbackQueries(bot) {
     }
   });
 }
+

@@ -1,6 +1,6 @@
-import AccessLog from "../model/AccessLog.js";
-import Movie from "../model/MovieModel.js";
-import Series from "../model/SeriesModel.js";
+import AccessLog from "#model/AccessLog.js";
+import Movie from "#model/MovieModel.js";
+import Series from "#model/SeriesModel.js";
 
 export const getTrendingContent = async (limit = 5, days = 7) => {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);

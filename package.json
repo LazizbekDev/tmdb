@@ -4,6 +4,9 @@
   "description": "find and watch movies on telegram",
   "main": "index.js",
   "type": "module",
+  "imports": {
+    "#*": "./*"
+  },
   "scripts": {
     "start": "node --watch index.js",
     "update-paths": "node updatePaths.js"

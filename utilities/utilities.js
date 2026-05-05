@@ -1,8 +1,8 @@
-import formatList, { generatePaginationButtons } from "../controllers/list/formatList.js";
-import MovieModel from "../model/MovieModel.js";
-import SeriesModel from "../model/SeriesModel.js";
-import { adminNotifier } from "./admin_notifier.js";
-import { getPaginatedData } from "./pagination.js";
+import formatList, { generatePaginationButtons } from "#controllers/list/formatList.js";
+import MovieModel from "#model/MovieModel.js";
+import SeriesModel from "#model/SeriesModel.js";
+import { adminNotifier } from "#utilities/admin_notifier.js";
+import { getPaginatedData } from "#utilities/pagination.js";
 
 // Hashtaglardan toza genre'larni chiqarish
 export function extractGenres(keywords) {
@@ -116,13 +116,13 @@ export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Mode
 export const sendJoinWarning = async (ctx) => {
   const channel = process.env.CHANNEL_USERNAME;
   return ctx.reply(
-    `You cannot save or share the content unless you join the main <a href='https://t.me/${channel}'>channel</a> `,
+    `🔔 <b>Just one more thing!</b>\n\nTo save movies to your watchlist or share them with friends, please join our official channel. It helps us keep the bot running for everyone!`,
     {
       parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
-          [{ text: "Join", url: `https://t.me/${channel}` }],
-          [{ text: "Check", callback_data: "check_membership" }],
+          [{ text: "📢 Join Channel", url: `https://t.me/${channel}` }],
+          [{ text: "✅ I have joined", callback_data: "check_membership" }],
         ],
       },
     }

@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
-import User from "../model/User.js";
-import startMessages from "../utilities/messages/startMessage.js";
+import User from "#model/User.js";
+import startMessages from "#utilities/messages/startMessage.js";
 
 export const checkUserMembership = async (userId) => {
     const response = await fetch(

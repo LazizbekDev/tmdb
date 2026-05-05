@@ -1,12 +1,12 @@
-import search from "./search.js";
-import { handleActionButtons } from "./handlers/actionHandler.js";
-import { handleTextInput } from "./handlers/textHandler.js";
-import { handleVideoOrDocument } from "./handlers/mediaHandler.js";
-import { handleCommands } from "./handlers/commandHandler.js";
-import { handleCallbackQueries } from "./handlers/callbackQueryHandler.js";
-import { handleChatMemberUpdates } from "./handlers/chatMemberHandler.js";
-import { handleStart } from "./handlers/startHandler.js";
-import replyToUser from "./feedback/replyToUser.js";
+import search from "#controllers/search.js";
+import { handleActionButtons } from "#controllers/handlers/actionHandler.js";
+import { handleTextInput } from "#controllers/handlers/textHandler.js";
+import { handleVideoOrDocument } from "#controllers/handlers/mediaHandler.js";
+import { handleCommands } from "#controllers/handlers/commandHandler.js";
+import { handleCallbackQueries } from "#controllers/handlers/callbackQueryHandler.js";
+import { handleChatMemberUpdates } from "#controllers/handlers/chatMemberHandler.js";
+import { handleStart } from "#controllers/handlers/startHandler.js";
+import replyToUser from "#controllers/feedback/replyToUser.js";
 
 export default function setupActions(bot) {
   // Handle /start command

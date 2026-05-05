@@ -1,7 +1,7 @@
-import Movie from "../model/MovieModel.js";
-import Series from "../model/SeriesModel.js";
-import { cleanText } from "../utilities/utilities.js";
-import { getAiSuggestions } from "../utilities/aiSearch.js";
+import Movie from "#model/MovieModel.js";
+import Series from "#model/SeriesModel.js";
+import { cleanText } from "#utilities/utilities.js";
+import { getAiSuggestions } from "#utilities/aiSearch.js";
 
 export default async function search(ctx) {
     const query = ctx.inlineQuery.query;

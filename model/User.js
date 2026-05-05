@@ -6,6 +6,14 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
+    firstName: {
+        type: String,
+        required: false,
+    },
+    username: {
+        type: String,
+        required: false,
+    },
     accessCount: {
         type: Number,
         default: 0, // Tracks how many movies they have accessed

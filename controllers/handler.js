@@ -1,6 +1,6 @@
-import { handleActionButtons } from "./handlers/actionHandler.js";
-import { handleVideoOrDocument } from "./handlers/mediaHandler.js";
-import { handleTextInput } from "./handlers/textHandler.js";
+import { handleActionButtons } from "#controllers/handlers/actionHandler.js";
+import { handleVideoOrDocument } from "#controllers/handlers/mediaHandler.js";
+import { handleTextInput } from "#controllers/handlers/textHandler.js";
 
 export default function setupHandlers(bot) {
   // Handle action buttons

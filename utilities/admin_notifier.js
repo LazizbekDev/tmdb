@@ -23,7 +23,8 @@ ${userInfo}
 
 export const notifyAdminContentAccessed = async (ctx, user, content, type) => {
     try {
-        const usernameDisplay = user.username ? `@${user.username}` : "No username";
+        const userLink = `<a href='tg://user?id=${user.id}'>${user.first_name}</a>`;
+        const usernameDisplay = user.username ? ` (@${user.username})` : "";
         const contentLabel = type === "Movie" ? "Movie" : "Show";
         const urlPrefix = `https://t.me/${process.env.BOT_USERNAME}?start=${content._id}`;
         
@@ -31,7 +32,7 @@ export const notifyAdminContentAccessed = async (ctx, user, content, type) => {
 🔔 <b>${contentLabel} Accessed</b>
 ▪️ <b>${contentLabel}:</b> <a href='${urlPrefix}'>${content.name}</a>
 ▪️ <b>Access Count:</b> ${content.accessedBy.length}
-▪️ <b>User:</b> ${user.first_name} (${usernameDisplay})
+▪️ <b>User:</b> ${userLink}${usernameDisplay}
 ▪️ <b>User ID:</b> <code>${user.id}</code>
         `.trim();
 

@@ -1,16 +1,16 @@
-import UserSubmission from "../../model/FilmRequest.js";
-import Movie from "../../model/MovieModel.js";
-import Series from "../../model/SeriesModel.js";
-import { adminNotifier } from "../../utilities/admin_notifier.js";
-import { cleanText, handlePagination } from "../../utilities/utilities.js";
-import toAdmin from "../feedback/toAdmin.js";
-import title from "../series/title.js";
-import findCurrentSeason from "../series/seasons/find_current.js";
-import saveSeries from "../series/saveSeries.js";
-import saveNewSeason from "../series/seasons/saveSeason.js";
-import info from "../add_new/info.js";
-import { sendUpdateMessage } from "../../utilities/updateFilm.js";
-import { getAiSuggestions } from "../../utilities/aiSearch.js";
+import UserSubmission from "#model/FilmRequest.js";
+import Movie from "#model/MovieModel.js";
+import Series from "#model/SeriesModel.js";
+import { adminNotifier } from "#utilities/admin_notifier.js";
+import { cleanText, handlePagination } from "#utilities/utilities.js";
+import toAdmin from "#controllers/feedback/toAdmin.js";
+import title from "#controllers/series/title.js";
+import findCurrentSeason from "#controllers/series/seasons/find_current.js";
+import saveSeries from "#controllers/series/saveSeries.js";
+import saveNewSeason from "#controllers/series/seasons/saveSeason.js";
+import info from "#controllers/add_new/info.js";
+import { sendUpdateMessage } from "#utilities/updateFilm.js";
+import { getAiSuggestions, generateMediaInfoWithAI } from "#utilities/aiSearch.js";
 
 export async function handleTextInput(ctx, bot) {
   const userId = ctx.from.id;
@@ -21,6 +21,47 @@ export async function handleTextInput(ctx, bot) {
   try {
     console.log(`Step: ${step}, Message: ${messageText}`);
     
+    if (messageText === "/endchat") {
+      delete ctx.session.step;
+      return ctx.reply("❌ Chat session closed.");
+    }
+
+    if (messageText.startsWith("/reply ")) {
+      const parts = messageText.split(" ");
+      if (parts.length < 3) return ctx.reply("Usage: /reply USER_ID message");
+      const targetId = parts[1];
+      const replyMsg = parts.slice(2).join(" ");
+      try {
+        await bot.telegram.sendMessage(targetId, `💬 <b>Admin Message:</b>\n\n${replyMsg}`, { parse_mode: "HTML" });
+        return ctx.reply(`✅ Message sent to user ${targetId}`);
+      } catch (err) {
+        return ctx.reply(`❌ Failed to send message: ${err.message}`);
+      }
+    }
+
+    if (step && step.startsWith("chatting_with_")) {
+      const targetId = step.replace("chatting_with_", "");
+      try {
+        if (targetId === "admin") {
+          const userLink = `<a href='tg://user?id=${userId}'>${ctx.from.first_name}</a>`;
+          const usernameDisplay = ctx.from.username ? ` (@${ctx.from.username})` : "";
+          await bot.telegram.sendMessage(process.env.ADMIN_ID, `💬 <b>Message from</b> ${userLink}${usernameDisplay}:\n\n${messageText}`, {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [[{ text: "💬 Reply", callback_data: `chat_with_${userId}` }]]
+            }
+          });
+          return ctx.reply("✅ Your message has been sent to the admin.");
+        } else {
+          await bot.telegram.sendMessage(targetId, `💬 <b>Admin Message:</b>\n\n${messageText}`, { parse_mode: "HTML" });
+          return ctx.reply("✅ Message sent.");
+        }
+      } catch (err) {
+        console.error("Chat error:", err);
+        return ctx.reply("❌ Failed to send message. The user might have blocked the bot.");
+      }
+    }
+
     if (step && step.startsWith("awaitingDelete_")) {
       const movieId = step.split("_")[1];
       if (messageText === "CANCEL") {
@@ -54,16 +95,106 @@ export async function handleTextInput(ctx, bot) {
     }
 
     switch (step) {
+      // --- AI Movie Flow ---
+      case "ai_movie_name":
+        await ctx.reply("Generating movie details with AI... Please wait ⏳");
+        const aiInfo = await generateMediaInfoWithAI(messageText, false);
+        if (!aiInfo) {
+          return ctx.reply("Failed to generate AI info. Please try again or use manual add.");
+        }
+        ctx.session.movieData.name = aiInfo.name;
+        ctx.session.movieData.caption = aiInfo.caption;
+        ctx.session.movieData.keywords = aiInfo.keywords;
+        
+        await ctx.reply(`AI generated details:\n\nName: ${aiInfo.name}\nCaption: ${aiInfo.caption}\nKeywords: ${aiInfo.keywords.join(", ")}\n\nSaving movie...`);
+        import("#controllers/add_new/movieSave.js").then(m => m.saveAiMovie(ctx));
+        break;
+
+      // --- Manual Movie Flow ---
+      case "manual_movie_name":
+        if (!ctx.session.movieData) ctx.session.movieData = {};
+        ctx.session.movieData.name = messageText;
+        ctx.session.step = "manual_movie_caption";
+        await ctx.reply("Name received. Please send the description/caption.", {
+          reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]] }
+        });
+        break;
+      case "manual_movie_caption":
+        ctx.session.movieData.caption = messageText;
+        ctx.session.step = "manual_movie_keywords";
+        await ctx.reply("Caption received. Please send the keywords (comma separated).", {
+          reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]] }
+        });
+        break;
+      case "manual_movie_keywords":
+        ctx.session.movieData.keywords = messageText.split(",").map(k => k.trim());
+        ctx.session.step = "manual_movie_video";
+        await ctx.reply("Keywords received. Please send the main video file.", {
+          reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]] }
+        });
+        break;
+
+      // --- AI Series Flow ---
+      case "ai_series_name":
+        await ctx.reply("Generating series details with AI... Please wait ⏳");
+        const aiSeriesInfo = await generateMediaInfoWithAI(messageText, true);
+        if (!aiSeriesInfo) {
+          return ctx.reply("Failed to generate AI info. Please try again or use manual add.");
+        }
+        if (!ctx.session.seriesData) ctx.session.seriesData = {};
+        ctx.session.seriesData.name = aiSeriesInfo.name;
+        ctx.session.seriesData.caption = aiSeriesInfo.caption;
+        ctx.session.seriesData.keywords = aiSeriesInfo.keywords;
+        ctx.session.step = "ai_series_season";
+        await ctx.reply(`AI generated details:\n\nName: ${aiSeriesInfo.name}\nCaption: ${aiSeriesInfo.caption}\nKeywords: ${aiSeriesInfo.keywords.join(", ")}\n\nPlease send the season number (e.g. 1).`, {
+          reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]] }
+        });
+        break;
+      case "ai_series_season":
+        ctx.session.seriesData.seasonNumber = parseInt(messageText);
+        ctx.session.step = "ai_series_teaser";
+        await ctx.reply("Season number received. Please send the teaser video.", {
+          reply_markup: {
+            inline_keyboard: [[{ text: "⏭ Skip Teaser", callback_data: "skip_teaser_series" }], [{ text: "❌ Cancel", callback_data: "cancel_add" }]]
+          }
+        });
+        break;
+
+      // --- Manual Series Flow ---
+      case "manual_series_name":
+        if (!ctx.session.seriesData) ctx.session.seriesData = {};
+        ctx.session.seriesData.name = messageText;
+        ctx.session.step = "manual_series_season";
+        await ctx.reply("Name received. Please send the season number (e.g. 1).", {
+          reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]] }
+        });
+        break;
+      case "manual_series_season":
+        ctx.session.seriesData.seasonNumber = parseInt(messageText);
+        ctx.session.step = "manual_series_caption";
+        await ctx.reply("Season number received. Please send the description/caption.", {
+          reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]] }
+        });
+        break;
+      case "manual_series_caption":
+        ctx.session.seriesData.caption = messageText;
+        ctx.session.step = "manual_series_keywords";
+        await ctx.reply("Caption received. Please send the keywords (comma separated).", {
+          reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]] }
+        });
+        break;
+      case "manual_series_keywords":
+        ctx.session.seriesData.keywords = messageText.split(",").map(k => k.trim());
+        ctx.session.step = "manual_series_teaser";
+        await ctx.reply("Keywords received. Please send the teaser video.", {
+          reply_markup: {
+            inline_keyboard: [[{ text: "⏭ Skip Teaser", callback_data: "skip_teaser_series" }], [{ text: "❌ Cancel", callback_data: "cancel_add" }]]
+          }
+        });
+        break;
+
+      // Old flows preserved
       case "awaitingSeriesForNewSeason":
-        await findCurrentSeason(ctx, ctx.session, userId);
-        break;
-      case "awaitingSeriesDetails":
-        await title(ctx, ctx.session, userId);
-        break;
-      case "awaitingDetails":
-        await info(ctx, ctx.session);
-        console.log("Details saved, awaiting teaser.");
-        break;
       case "awaitingFeedback":
         await toAdmin(ctx);
         break;
@@ -84,12 +215,11 @@ export async function handleTextInput(ctx, bot) {
           request: messageText,
           timestamp: new Date(),
         });
+        const userLink = `<a href='tg://user?id=${userId}'>${ctx.from.first_name}</a>`;
+        const usernameDisplay = ctx.from.username ? ` (@${ctx.from.username})` : "";
         await ctx.telegram.sendMessage(
           process.env.ADMIN_ID,
-          `👤from ${ctx.from.username
-            ? "@" + ctx.from.username
-            : `User ID: <code>${userId} - ${ctx.from?.first_name}</code>`
-          }\n\n📝<i>${messageText}</i>\n\nℹ️ to reply: <code>/reply ${userId} Thanks for your feedback ☺️</code>`,
+          `👤 <b>Feedback from:</b> ${userLink}${usernameDisplay}\n\n📝 <i>${messageText}</i>\n\nℹ️ to reply: <code>/reply ${userId} Thanks for your feedback ☺️</code>`,
           { parse_mode: "HTML" }
         );
         await ctx.reply("Thank you! Your request has been submitted.");
@@ -101,8 +231,9 @@ export async function handleTextInput(ctx, bot) {
         await sendUpdateMessage(
           ctx,
           "Please choose an option for the description or enter a new description:",
-          ctx.session.targetMovieId,
-          "description"
+          ctx.session.targetContentId,
+          "description",
+          ctx.session.isSeriesUpdate
         );
         break;
       case "description_input":
@@ -112,8 +243,9 @@ export async function handleTextInput(ctx, bot) {
         await sendUpdateMessage(
           ctx,
           "Please choose an option for the keywords or enter new keywords:",
-          ctx.session.targetMovieId,
-          "keywords"
+          ctx.session.targetContentId,
+          "keywords",
+          ctx.session.isSeriesUpdate
         );
         break;
       case "keywords_input":
@@ -123,8 +255,9 @@ export async function handleTextInput(ctx, bot) {
         await sendUpdateMessage(
           ctx,
           "Update complete! Press to save changes:",
-          ctx.session.targetMovieId,
-          "save"
+          ctx.session.targetContentId,
+          "save",
+          ctx.session.isSeriesUpdate
         );
         break;
       default:

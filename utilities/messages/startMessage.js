@@ -2,12 +2,8 @@ const startMessages = {
   subscribed: (firstName, isAdmin, botUsername) => ({
     text: `<b>👋 Welcome, ${firstName}!</b>
 
-<i>"Just stuff I watch when I can’t sleep
-Call it piracy, I call it preservation
-Leaked? Maybe. Worth it? Definitely
-
-No promises, no schedule, just movies
-Join or scroll, we good either way"</i>
+🛸 <b>Your Premium Cinema Archive</b>
+I curate high-quality movies and series for the true enthusiast. No clutter, no distractions—just the content you love, delivered with speed and precision.
 
 ──────────────────
 <b>🚀 HOW TO USE:</b>
@@ -20,15 +16,16 @@ Join or scroll, we good either way"</i>
     keyboard: [
       [{ text: "🔍 Start Searching", switch_inline_query_current_chat: "" }],
       [
-        { text: "🔥 Trending", callback_data: "trending_list" },
-        { text: "📜 Movie List", callback_data: "page_1" }
+        { text: "🔥 Trending Now", callback_data: "trending_list" },
+        { text: "📜 Library List", callback_data: "page_1" }
       ],
       [
         {
-          text: isAdmin ? "➕ Add Content" : "💬 Send Feedback",
+          text: isAdmin ? "➕ Add New Content" : "💬 Contact Support",
           callback_data: isAdmin ? "add" : "feedback",
         },
       ],
+      isAdmin ? [{ text: "👥 Manage Users", callback_data: "admin_user_list_0" }] : [],
       [
         {
           text: "🎬 Request a Movie",
@@ -41,12 +38,8 @@ Join or scroll, we good either way"</i>
   notSubscribed: (firstName, botUsername) => `
 <b>👋 Hello ${firstName}!</b>
 
-<i>"Just stuff I watch when I can’t sleep
-Call it piracy, I call it preservation
-Leaked? Maybe. Worth it? Definitely
-
-No promises, no schedule, just movies
-Join or scroll, we good either way"</i>
+🛸 <b>Your Premium Cinema Archive</b>
+I curate high-quality movies and series for the true enthusiast. No clutter, no distractions—just the content you love, delivered with speed and precision.
 
 ──────────────────
 <b>🎥 BOT FEATURES:</b>
