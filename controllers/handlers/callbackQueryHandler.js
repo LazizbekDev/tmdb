@@ -5,7 +5,7 @@ import { adminNotifier } from "#utilities/admin_notifier.js";
 import { getContentById, sendUpdateMessage } from "#utilities/updateFilm.js";
 import { handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton } from "#utilities/utilities.js";
 import { getTrendingContent } from "#utilities/trending.js";
-import { generateHeader } from "#controllers/list/formatList";
+import { generateHeader } from "#controllers/list/formatList.js";
 
 export function handleCallbackQueries(bot) {
   bot.on("callback_query", async (ctx) => {
