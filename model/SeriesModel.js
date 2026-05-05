@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { cleanText } from "../utilities/utilities.js";
+import { cleanText } from "#utilities/utilities.js";
 
 const SeriesSchema = new mongoose.Schema({
   name: { type: String, required: true },

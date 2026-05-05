@@ -1,5 +1,5 @@
-import User from "../../model/User.js";
-import { adminNotifier } from "../../utilities/admin_notifier.js";
+import User from "#model/User.js";
+import { adminNotifier } from "#utilities/admin_notifier.js";
 
 export async function handleChatMemberUpdates(ctx) {
   try {

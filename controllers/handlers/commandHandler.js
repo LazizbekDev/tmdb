@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
-import Movie from "../../model/MovieModel.js";
-import Series from "../../model/SeriesModel.js";
-import { adminNotifier } from "../../utilities/admin_notifier.js";
-import { suggestMovie } from "../suggestion.js";
-import { generateHeader } from "../list/formatList.js";
-import User from "../../model/User.js";
-import AccessLog from "../../model/AccessLog.js";
-import { handlePagination } from "../../utilities/utilities.js";
-import { getTrendingContent } from "../../utilities/trending.js";
+import Movie from "#model/MovieModel.js";
+import Series from "#model/SeriesModel.js";
+import { adminNotifier } from "#utilities/admin_notifier.js";
+import { suggestMovie } from "#controllers/suggestion.js";
+import { generateHeader } from "#controllers/list/formatList.js";
+import User from "#model/User.js";
+import AccessLog from "#model/AccessLog.js";
+import { handlePagination } from "#utilities/utilities.js";
+import { getTrendingContent } from "#utilities/trending.js";
 
 export function handleCommands(bot) {
   bot.command("trending", async (ctx) => {

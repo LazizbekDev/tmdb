@@ -1,7 +1,5 @@
-// utilities/session.js
-
 import { session } from "telegraf-session-mongodb";
-import { connect } from "../db.js";
+import { connect } from "#db.js";
 import dotenv from "dotenv";
 dotenv.config();
 

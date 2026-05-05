@@ -1,9 +1,8 @@
-import Series from "../../../model/SeriesModel.js";
+import Series from "#model/SeriesModel.js";
 
 export default async function saveNewSeason(ctx) {
   const { seriesId, seasonNumber, episodes } = ctx.session;
 
-  // Check if necessary data is present
   if (!seriesId || !seasonNumber || !Array.isArray(episodes)) {
     return ctx.reply("Incomplete session data. Please start over.");
   }

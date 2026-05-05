@@ -1,4 +1,4 @@
-import Series from "../../../model/SeriesModel.js";
+import Series from "#model/SeriesModel.js";
 
 export default async function addNewEpisode(ctx, file) {
     const { seriesId } = ctx.session;

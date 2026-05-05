@@ -3,9 +3,9 @@ import Series from "#model/SeriesModel.js";
 import User from "#model/User.js";
 import { adminNotifier } from "#utilities/admin_notifier.js";
 import { getContentById, sendUpdateMessage } from "#utilities/updateFilm.js";
-import { extractGenres, handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton } from "#utilities/utilities.js";
+import { handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton } from "#utilities/utilities.js";
 import { getTrendingContent } from "#utilities/trending.js";
-import { handleUserList } from "#utilities/userList.js";
+import { generateHeader } from "#controllers/list/formatList";
 
 export function handleCallbackQueries(bot) {
   bot.on("callback_query", async (ctx) => {

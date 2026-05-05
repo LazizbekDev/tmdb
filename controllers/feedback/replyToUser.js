@@ -1,5 +1,5 @@
-import Feedback from "../../model/Feedback.js";
-import User from "../../model/User.js";
+import Feedback from "#model/Feedback.js";
+import User from "#model/User.js";
 
 export default async function replyToUser(bot) {
     bot.command("reply", async (ctx) => {

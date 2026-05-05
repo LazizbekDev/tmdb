@@ -1,6 +1,6 @@
-import Movie from "../../model/MovieModel.js";
-import caption from "../../utilities/caption.js";
-import { cleanText } from "../../utilities/utilities.js";
+import Movie from "#model/MovieModel.js";
+import { cleanText } from "#utilities/utilities.js";
+import caption from "#utilities/caption.js";
 
 export default async function teaser(ctx) {
     const teaser = ctx.message.video;

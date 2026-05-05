@@ -1,4 +1,4 @@
-import { sendUpdateMessage } from "../../utilities/updateFilm.js";
+import { sendUpdateMessage } from "#utilities/updateFilm.js";
 
 export default async function movie(ctx, file) {
   if (!file) {

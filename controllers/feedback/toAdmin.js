@@ -1,4 +1,4 @@
-import Feedback from "../../model/Feedback.js";
+import Feedback from "#model/Feedback.js";
 
 export default async function toAdmin(ctx) {
     const userId = ctx.from.id;

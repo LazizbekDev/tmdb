@@ -6,7 +6,6 @@ import { checkUserMembership } from "#controllers/start.js";
 import add from "#controllers/add_new/main.js";
 import caption from "#utilities/caption.js";
 import { handlePagination, generateInteractiveKeyboard } from "#utilities/utilities.js";
-// import info from "../add_new/info.js";
 
 export function handleActionButtons(bot) {
   bot.action("add", add);

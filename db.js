@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-// import Movies from "./model/MovieModel.js";
-// import Series from "./model/SeriesModel.js";
-// import { cleanText } from "./utilities/utilities.js";
 
 export const connect = async (URI) => {
   try {

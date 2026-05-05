@@ -1,5 +1,5 @@
-import Movie from "../model/MovieModel.js";
-import { checkAdmin } from "../middleware/auth.js";
+import Movie from "#model/MovieModel.js";
+import { checkAdmin } from "#middleware/auth.js";
 import axios from "axios";
 import mongoose from "mongoose";
 
@@ -8,9 +8,9 @@ export default function setupRoutes(app) {
   app.get("/", async (req, res) => {
     try {
       const { formatCpuUsage, formatMemoryUsage, formatUptime, getSystemLoad } =
-        await import("../utilities/vote.js");
+        await import("#utilities/vote.js");
       const userCount = await (
-        await import("../model/User.js")
+        await import("#model/User.js")
       ).default.countDocuments();
       res.json({
         status: "success",

@@ -1,4 +1,4 @@
-import Series from "../../../model/SeriesModel.js";
+import Series from "#model/SeriesModel.js";
 
 export default async function findCurrentSeason(ctx) {
     const series = await Series.find({

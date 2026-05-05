@@ -1,9 +1,9 @@
 import cron from "node-cron";
-import SuggestionLog from "./model/suggestion_log.js";
-import User from "./model/User.js";
-import Movie from "./model/MovieModel.js";
-import Series from "./model/SeriesModel.js";
-import { suggestMovie } from "./controllers/suggestion.js";
+import SuggestionLog from "#model/suggestion_log.js";
+import User from "#model/User.js";
+import Movie from "#model/MovieModel.js";
+import Series from "#model/SeriesModel.js";
+import { suggestMovie } from "#controllers/suggestion.js";
 
 export function setupCronJobs(bot) {
   // Har 3 kunda film tavsiya qilish

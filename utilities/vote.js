@@ -1,7 +1,6 @@
 import os from "os";
-import UserSubmission from "../model/FilmRequest.js";
+import UserSubmission from "#model/FilmRequest.js";
 
-// Get submissions within the last 24 hours
 export const getSubmissionsWithinLast24Hours = async () => {
     try {
         const currentTime = new Date();
