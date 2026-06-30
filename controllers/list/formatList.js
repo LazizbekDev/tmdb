@@ -44,49 +44,71 @@ export const generatePaginationButtons = (currentPage, totalPages, actionPrefix 
     { text: sortType === "pop" ? "⭐ Popular" : "Popular", callback_data: `${actionPrefix}1_pop` }
   ]);
 
-  // 2. Tens Row (faqat umumiy sahifalar soni 10 dan katta bo'lsa)
-  if (totalPages > 10) {
-    const tensRow = [];
-    const startTen = Math.floor((currentPage - 1) / 50) * 50 + 10;
-    
-    if (startTen > 10) {
-      tensRow.push({ text: "«", callback_data: `${actionPrefix}${startTen - 10}_${sortType}` });
+  // 2. Tens Row — step 5, markazda hozirgi sahifa
+  if (totalPages > 5) {
+    const step = 5;
+    // Hozirgi sahifadan boshlab step=5 bilan 5 ta kandidat hosil qilamiz
+    // [cur, cur+5, cur+10, cur+15, cur+20] → totalPages bilan cheklaymiz
+    const candidates = [];
+    for (let i = 0; candidates.length < 5; i++) {
+      const page = currentPage + i * step;
+      if (page > totalPages) {
+        break;
+      }
+      candidates.push(page);
     }
 
-    for (let i = 0; i < 5; i++) {
-      const val = startTen + i * 10;
-      if (val > totalPages) {
-        break;
-      }
-      
-      // Agar 5 ta tugma chegarasiga yetsak va yana sahifalar qolgan bo'lsa "»" qo'shish
-      if (tensRow.length === 4 && val + 10 <= totalPages && startTen > 10) {
-        tensRow.push({ text: "»", callback_data: `${actionPrefix}${val}_${sortType}` });
-        break;
-      } else if (tensRow.length === 4 && val < totalPages && startTen === 10 && val + 10 <= totalPages) {
-         tensRow.push({ text: "»", callback_data: `${actionPrefix}${val}_${sortType}` });
-         break;
-      }
-      
-      tensRow.push({ text: `${val}`, callback_data: `${actionPrefix}${val}_${sortType}` });
+    const tensRow = [];
+
+    // « tugmasi: currentPage dan yuqori sahifalar bor bo'lsa
+    if (currentPage > step) {
+      tensRow.push({
+        text: "«",
+        callback_data: `${actionPrefix}${Math.max(1, currentPage - step)}_${sortType}`
+      });
     }
+
+    for (const page of candidates) {
+      tensRow.push({
+        text: page === currentPage ? `· ${page} ·` : `${page}`,
+        callback_data: `${actionPrefix}${page}_${sortType}`
+      });
+    }
+
+    // » tugmasi: hali ko'rsatilmagan sahifalar qolgan bo'lsa
+    const lastCandidate = candidates[candidates.length - 1];
+    if (lastCandidate && lastCandidate + step <= totalPages) {
+      tensRow.push({
+        text: "»",
+        callback_data: `${actionPrefix}${lastCandidate + step}_${sortType}`
+      });
+    }
+
     keyboard.push(tensRow);
   }
 
-  // 3. Units Row (birliklar qatori)
+  // 3. Units Row — faqat ⬅️ + 5 ta raqam + ➡️
+  //    Raqamli tugmalar va arrow tugmalari overlap bo'lmasin uchun:
+  //    Raqamli oynani [currentPage-2 .. currentPage+2] deb olamiz,
+  //    lekin doim 5 ta to'liq ko'rsatishga harakat qilamiz.
   const unitsRow = [];
+
+  let startUnit = currentPage - 2;
+  let endUnit = currentPage + 2;
+
+  // Chegaralarga moslashtiramiz
+  if (startUnit < 1) {
+    endUnit += (1 - startUnit);
+    startUnit = 1;
+  }
+  if (endUnit > totalPages) {
+    startUnit -= (endUnit - totalPages);
+    endUnit = totalPages;
+  }
+  startUnit = Math.max(1, startUnit);
+
   if (currentPage > 1) {
     unitsRow.push({ text: "⬅️", callback_data: `${actionPrefix}${currentPage - 1}_${sortType}` });
-  }
-
-  let startUnit = Math.max(1, currentPage - 2);
-  let endUnit = Math.min(totalPages, currentPage + 2);
-
-  if (currentPage <= 2) {
-    endUnit = Math.min(totalPages, 5);
-  }
-  if (currentPage >= totalPages - 1) {
-    startUnit = Math.max(1, totalPages - 4);
   }
 
   for (let i = startUnit; i <= endUnit; i++) {
@@ -99,7 +121,7 @@ export const generatePaginationButtons = (currentPage, totalPages, actionPrefix 
   if (currentPage < totalPages) {
     unitsRow.push({ text: "➡️", callback_data: `${actionPrefix}${currentPage + 1}_${sortType}` });
   }
-  
+
   keyboard.push(unitsRow);
 
   return keyboard;
