@@ -4,11 +4,8 @@ import Series from "#model/SeriesModel.js";
 import { adminNotifier } from "#utilities/admin_notifier.js";
 import { cleanText, handlePagination } from "#utilities/utilities.js";
 import toAdmin from "#controllers/feedback/toAdmin.js";
-import title from "#controllers/series/title.js";
-import findCurrentSeason from "#controllers/series/seasons/find_current.js";
 import saveSeries from "#controllers/series/saveSeries.js";
 import saveNewSeason from "#controllers/series/seasons/saveSeason.js";
-import info from "#controllers/add_new/info.js";
 import { sendUpdateMessage } from "#utilities/updateFilm.js";
 import { getAiSuggestions, generateMediaInfoWithAI } from "#utilities/aiSearch.js";
 
@@ -96,7 +93,7 @@ export async function handleTextInput(ctx, bot) {
 
     switch (step) {
       // --- AI Movie Flow ---
-      case "ai_movie_name":
+      case "ai_movie_name": {
         await ctx.reply("Generating movie details with AI... Please wait ⏳");
         const aiInfo = await generateMediaInfoWithAI(messageText, false);
         if (!aiInfo) {
@@ -109,6 +106,7 @@ export async function handleTextInput(ctx, bot) {
         await ctx.reply(`AI generated details:\n\nName: ${aiInfo.name}\nCaption: ${aiInfo.caption}\nKeywords: ${aiInfo.keywords.join(", ")}\n\nSaving movie...`);
         import("#controllers/add_new/movieSave.js").then(m => m.saveAiMovie(ctx));
         break;
+      }
 
       // --- Manual Movie Flow ---
       case "manual_movie_name":
@@ -135,7 +133,7 @@ export async function handleTextInput(ctx, bot) {
         break;
 
       // --- AI Series Flow ---
-      case "ai_series_name":
+      case "ai_series_name": {
         await ctx.reply("Generating series details with AI... Please wait ⏳");
         const aiSeriesInfo = await generateMediaInfoWithAI(messageText, true);
         if (!aiSeriesInfo) {
@@ -150,6 +148,7 @@ export async function handleTextInput(ctx, bot) {
           reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "cancel_add" }]] }
         });
         break;
+      }
       case "ai_series_season":
         ctx.session.seriesData.seasonNumber = parseInt(messageText);
         ctx.session.step = "ai_series_teaser";
@@ -208,7 +207,7 @@ export async function handleTextInput(ctx, bot) {
           await saveNewSeason(ctx, ctx.session, userId);
         }
         break;
-      case "awaitingRequestName":
+      case "awaitingRequestName": {
         await UserSubmission.create({
           userId,
           name: ctx.from.first_name,
@@ -224,6 +223,7 @@ export async function handleTextInput(ctx, bot) {
         );
         await ctx.reply("Thank you! Your request has been submitted.");
         break;
+      }
       case "name_input":
         ctx.session.updateFields = ctx.session.updateFields || {};
         ctx.session.updateFields.name = messageText;

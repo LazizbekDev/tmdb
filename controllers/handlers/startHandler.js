@@ -3,7 +3,7 @@ import Series from "#model/SeriesModel.js";
 import User from "#model/User.js";
 import AccessLog from "#model/AccessLog.js";
 import { checkUserMembership, startMessage } from "#controllers/start.js";
-import caption from "#utilities/caption.js";
+
 import { notifyAdminContentAccessed } from "#utilities/admin_notifier.js";
 import { sendJoinWarning, generateInteractiveKeyboard, extractGenres } from "#utilities/utilities.js";
 

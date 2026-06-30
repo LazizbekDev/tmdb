@@ -39,7 +39,7 @@ export default async function replyToUser(bot) {
 
             return await ctx.reply("Your reply has been sent.");
         } catch (error) {
-            if (error.description == "Forbidden: bot was blocked by the user") {
+            if (error.description === "Forbidden: bot was blocked by the user") {
                 await ctx.reply("Sorry, this user blocked the bot!");
                 return;
             }

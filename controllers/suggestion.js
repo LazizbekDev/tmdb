@@ -2,7 +2,7 @@ import MovieModel from "#model/MovieModel.js";
 import SeriesModel from "#model/SeriesModel.js";
 import User from "#model/User.js";
 import { adminNotifier } from "#utilities/admin_notifier.js";
-import { extractGenres, getRandomContent } from "#utilities/utilities.js";
+import { extractGenres } from "#utilities/utilities.js";
 
 export const suggestMovie = async (bot, userId) => {
   try {
