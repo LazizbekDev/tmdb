@@ -50,42 +50,50 @@ export function handleCallbackQueries(bot) {
         `;
         await ctx.telegram.sendMessage(process.env.ADMIN_ID, adminMessage, { parse_mode: "HTML" });
       } else if (callbackData.startsWith("show_")) {
+        // Format: show_<userId>_<page>_<sort>
         const parts = callbackData.split("_");
         const userIdToQuery = parts[1];
         const pageNum = parseInt(parts[2]);
+        const sortType = parts[3] || "new";
 
         if (!userIdToQuery || isNaN(pageNum)) {
-          return ctx.answerCbQuery("Noto‘g‘ri so‘rov.");
+          return ctx.answerCbQuery("Noto'g'ri so'rov.");
         }
 
         if (!checkIsAdmin(ctx)) {
-          return ctx.answerCbQuery("Sizda bu amalni bajarish uchun ruxsat yo‘q.", { show_alert: true });
+          return ctx.answerCbQuery("Sizda bu amalni bajarish uchun ruxsat yo'q.", { show_alert: true });
         }
 
         const query = { accessedBy: userIdToQuery };
         const showHeader = (moviesCount, seriesCount) =>
-          `<b>Foydalanuvchi (ID: ${userIdToQuery}) ko‘rgan kontent</b>\nFilmlar: ${moviesCount} | Seriallar: ${seriesCount}\n\n`;
+          `<b>Foydalanuvchi (ID: ${userIdToQuery}) ko'rgan kontent</b>\nFilmlar: ${moviesCount} | Seriallar: ${seriesCount}\n\n`;
 
-        await handlePagination(ctx, bot, pageNum, Movie, Series, 10, query, `show_${userIdToQuery}_`, showHeader);
+        await handlePagination(ctx, bot, pageNum, Movie, Series, 10, query, `show_${userIdToQuery}_`, showHeader, sortType);
 
       } else if (callbackData.startsWith("page_")) {
-        const pageNum = parseInt(callbackData.split("_")[1]);
+        // Format: page_<page>_<sort>
+        const parts = callbackData.split("_");
+        const pageNum = parseInt(parts[1]);
+        const sortType = parts[2] || "new";
         if (!isNaN(pageNum)) {
-          await handlePagination(ctx, bot, pageNum, Movie, Series, 10, {}, "page_", generateHeader);
+          await handlePagination(ctx, bot, pageNum, Movie, Series, 10, {}, "page_", generateHeader, sortType);
         } else {
           await ctx.answerCbQuery();
         }
       } else if (callbackData.startsWith("watch_list_")) {
-        const pageNum = parseInt(callbackData.split("_")[2]);
+        // Format: watch_list_<page>_<sort>
+        const parts = callbackData.split("_");
+        const pageNum = parseInt(parts[2]);
+        const sortType = parts[3] || "new";
         if (isNaN(pageNum)) {
            return ctx.answerCbQuery();
         }
         const user = await User.findOne({ telegramId: userId.toString() });
         if (!user || !user.savedMovies || user.savedMovies.length === 0) {
-           return ctx.answerCbQuery("Sizda saqlangan kontent yo‘q.", { show_alert: true });
+           return ctx.answerCbQuery("Sizda saqlangan kontent yo'q.", { show_alert: true });
         }
         const query = { _id: { $in: user.savedMovies } };
-        await handlePagination(ctx, bot, pageNum, Movie, Series, 10, query, "watch_list_", generateHeader);
+        await handlePagination(ctx, bot, pageNum, Movie, Series, 10, query, "watch_list_", generateHeader, sortType);
 
       } else if (callbackData.startsWith("delete_")) {
         const contentId = callbackData.split("delete_")[1];

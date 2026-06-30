@@ -41,7 +41,7 @@ export function handleCommands(bot) {
   bot.command("list", async (ctx) => {
     try {
       const page = parseInt(ctx.match?.[1] || 1);
-      await handlePagination(ctx, bot, page, Movie, Series, 10, {}, "page_", generateHeader);
+      await handlePagination(ctx, bot, page, Movie, Series, 10, {}, "page_", generateHeader, "new");
     } catch (error) {
       console.error("Error in /list command:", error);
       await ctx.reply("An error occurred while processing your request.");

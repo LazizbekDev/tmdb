@@ -62,12 +62,12 @@ export const getExtension = (mimeType = "") => {
   return map[mimeType.toLowerCase()] || "mp4"; // default
 };
 
-export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Model2 = SeriesModel, limit = 10, query = {}, callbackPrefix = "search_list_", headerGenerator = null) => {
+export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Model2 = SeriesModel, limit = 10, query = {}, callbackPrefix = "search_list_", headerGenerator = null, sortType = "new") => {
   try {
     // Paginated ma'lumotlarni olish
     const [result1, result2] = await Promise.all([
-      getPaginatedData(Model1, page, limit, query),
-      getPaginatedData(Model2, page, limit, query),
+      getPaginatedData(Model1, page, limit, query, sortType),
+      getPaginatedData(Model2, page, limit, query, sortType),
     ]);
 
     // Agar hech qanday ma'lumot topilmasa
@@ -92,7 +92,7 @@ export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Mode
     const content = header + formatList(result1.data, result2.data, page, limit);
 
     // Pagination tugmalarini yaratish
-    const paginationButtons = generatePaginationButtons(page, totalPages, callbackPrefix);
+    const paginationButtons = generatePaginationButtons(page, totalPages, callbackPrefix, sortType);
 
     // Xabarni tahrirlash yoki yuborish
     if (ctx.update.callback_query) {

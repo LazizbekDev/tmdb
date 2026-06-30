@@ -86,15 +86,17 @@ export function handleActionButtons(bot) {
   });
 
 
-  bot.action(/list_page_(\d+)/, async (ctx) => {
+  bot.action(/list_page_(\d+)_(\w+)/, async (ctx) => {
     const page = parseInt(ctx.match[1], 10);
-    await handlePagination(ctx, bot, page, Movie, Series, 10, {}, "list_page_");
+    const sortType = ctx.match[2] || "new";
+    await handlePagination(ctx, bot, page, Movie, Series, 10, {}, "list_page_", null, sortType);
   });
 
-  bot.action(/search_list_(\d+)/, async (ctx) => {
+  bot.action(/search_list_(\d+)_(\w+)/, async (ctx) => {
     try {
       await ctx.answerCbQuery("Searching...");
-      const page = parseInt(ctx.match[1], 10); // 10 asosida parse qilish (5 noto‘g‘ri edi)
+      const page = parseInt(ctx.match[1], 10);
+      const sortType = ctx.match[2] || "new";
       const cleanedText = ctx.session.query;
 
       if (!cleanedText) {
@@ -122,7 +124,9 @@ export function handleActionButtons(bot) {
         Series,
         10,
         query,
-        "search_list_"
+        "search_list_",
+        null,
+        sortType
       );
     } catch (error) {
       console.error("🔍 Search list error:", error);

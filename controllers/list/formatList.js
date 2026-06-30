@@ -34,48 +34,75 @@ export default function formatList(movies, series, page, limit) {
   return `${movieList}\n\n${seriesList}`;
 }
 
-export const generatePaginationButtons = (currentPage, totalPages, actionPrefix = "list_page_") => {
-  const buttons = [];
-  const maxButtons = 5; // Limit the number of buttons to 5
+export const generatePaginationButtons = (currentPage, totalPages, actionPrefix = "l_", sortType = "new") => {
+  const keyboard = [];
 
-  // Add the "Previous" button if not on the first page
-  if (currentPage > 1) {
-    buttons.push({
-      text: "⬅️",
-      callback_data: `${actionPrefix}${currentPage - 1}`,
-    });
-  }
+  // 1. Sort Row
+  keyboard.push([
+    { text: sortType === "new" ? "🔽 Newest" : "Newest", callback_data: `${actionPrefix}1_new` },
+    { text: sortType === "old" ? "🔼 Oldest" : "Oldest", callback_data: `${actionPrefix}1_old` },
+    { text: sortType === "pop" ? "⭐ Popular" : "Popular", callback_data: `${actionPrefix}1_pop` }
+  ]);
 
-  // Calculate range of pages to show
-  let start = 1;
-  let end = totalPages;
-
-  if (totalPages > maxButtons) {
-    if (currentPage <= 3) {
-      end = Math.min(maxButtons, totalPages); // Show first pages if near the start
-    } else if (currentPage >= totalPages - 2) {
-      start = totalPages - maxButtons + 1; // Show last pages if near the end
-    } else {
-      start = currentPage - 2; // Show a range of pages around the current page
-      end = currentPage + 2;
+  // 2. Tens Row (faqat umumiy sahifalar soni 10 dan katta bo'lsa)
+  if (totalPages > 10) {
+    const tensRow = [];
+    const startTen = Math.floor((currentPage - 1) / 50) * 50 + 10;
+    
+    if (startTen > 10) {
+      tensRow.push({ text: "«", callback_data: `${actionPrefix}${startTen - 10}_${sortType}` });
     }
+
+    for (let i = 0; i < 5; i++) {
+      const val = startTen + i * 10;
+      if (val > totalPages) {
+        break;
+      }
+      
+      // Agar 5 ta tugma chegarasiga yetsak va yana sahifalar qolgan bo'lsa "»" qo'shish
+      if (tensRow.length === 4 && val + 10 <= totalPages && startTen > 10) {
+        tensRow.push({ text: "»", callback_data: `${actionPrefix}${val}_${sortType}` });
+        break;
+      } else if (tensRow.length === 4 && val < totalPages && startTen === 10 && val + 10 <= totalPages) {
+         tensRow.push({ text: "»", callback_data: `${actionPrefix}${val}_${sortType}` });
+         break;
+      }
+      
+      tensRow.push({ text: `${val}`, callback_data: `${actionPrefix}${val}_${sortType}` });
+    }
+    keyboard.push(tensRow);
   }
 
-  // Add the page number buttons
-  for (let i = start; i <= end; i++) {
-    if (i === currentPage) {continue;} // Skip the current page
-    buttons.push({ text: `${i}`, callback_data: `${actionPrefix}${i}` });
+  // 3. Units Row (birliklar qatori)
+  const unitsRow = [];
+  if (currentPage > 1) {
+    unitsRow.push({ text: "⬅️", callback_data: `${actionPrefix}${currentPage - 1}_${sortType}` });
   }
 
-  // Add the "Next" button if not on the last page
-  if (currentPage < totalPages) {
-    buttons.push({
-      text: "➡️",
-      callback_data: `${actionPrefix}${currentPage + 1}`,
+  let startUnit = Math.max(1, currentPage - 2);
+  let endUnit = Math.min(totalPages, currentPage + 2);
+
+  if (currentPage <= 2) {
+    endUnit = Math.min(totalPages, 5);
+  }
+  if (currentPage >= totalPages - 1) {
+    startUnit = Math.max(1, totalPages - 4);
+  }
+
+  for (let i = startUnit; i <= endUnit; i++) {
+    unitsRow.push({
+      text: i === currentPage ? `· ${i} ·` : `${i}`,
+      callback_data: `${actionPrefix}${i}_${sortType}`
     });
   }
 
-  return [buttons];
+  if (currentPage < totalPages) {
+    unitsRow.push({ text: "➡️", callback_data: `${actionPrefix}${currentPage + 1}_${sortType}` });
+  }
+  
+  keyboard.push(unitsRow);
+
+  return keyboard;
 };
 
 export const generateHeader = (moviesCount, seriesCount) => {

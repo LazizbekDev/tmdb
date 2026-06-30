@@ -1,11 +1,11 @@
 import NodeCache from "node-cache";
 const cache = new NodeCache({ stdTTL: 3600 }); // 1 soat
 
-export async function getPaginatedData(model, page = 1, limit = 10, query = {}) {
+export async function getPaginatedData(model, page = 1, limit = 10, query = {}, sortType = "new") {
   const skip = (page - 1) * limit;
   // Query'ni kesh kaliti sifatida ishlatish uchun JSON string'ga aylantirish
   const queryString = JSON.stringify(query);
-  const cacheKey = `${model.modelName.toLowerCase()}:page:${page}:query:${queryString}`;
+  const cacheKey = `${model.modelName.toLowerCase()}:page:${page}:query:${queryString}:sort:${sortType}`;
 
   // Keshdan ma'lumotni tekshirish
   const cached = cache.get(cacheKey);
@@ -15,12 +15,24 @@ export async function getPaginatedData(model, page = 1, limit = 10, query = {}) 
   }
 
   // Ma'lumotlarni olish
-  const data = await model
-    .find(query)
-    .sort({ _id: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
+  let data;
+  if (sortType === "pop") {
+    data = await model.aggregate([
+      { $match: query },
+      { $addFields: { accessedCount: { $size: { $ifNull: ["$accessedBy", []] } } } },
+      { $sort: { accessedCount: -1, _id: -1 } },
+      { $skip: skip },
+      { $limit: limit }
+    ]);
+  } else {
+    const sortObj = sortType === "old" ? { _id: 1 } : { _id: -1 };
+    data = await model
+      .find(query)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+  }
 
   const totalCount = await model.countDocuments(query);
   const totalPages = Math.ceil(totalCount / limit);
