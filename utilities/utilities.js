@@ -107,6 +107,14 @@ export const handlePagination = async (ctx, bot, page, Model1 = MovieModel, Mode
       });
     }
   } catch (error) {
+    // Telegram: foydalanuvchi allaqachon shu sahifada tursa va qayta bosganda "message is not modified" xatosi keladi.
+    // Bu oddiy holat — xato sifatida emas, shunchaki callbackga javob berib chiqamiz.
+    if (error?.response?.error_code === 400 && error?.response?.description?.includes("message is not modified")) {
+      if (ctx.update.callback_query) {
+        await ctx.answerCbQuery();
+      }
+      return;
+    }
     console.error("Error in pagination:", error);
     await ctx.reply("An error occurred while processing your request.");
     await adminNotifier(bot, error, ctx, "Pagination error");
