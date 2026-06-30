@@ -5,7 +5,7 @@ import AccessLog from "#model/AccessLog.js";
 import { checkUserMembership, startMessage } from "#controllers/start.js";
 import caption from "#utilities/caption.js";
 import { notifyAdminContentAccessed } from "#utilities/admin_notifier.js";
-import { sendJoinWarning, generateInteractiveKeyboard } from "#utilities/utilities.js";
+import { sendJoinWarning, generateInteractiveKeyboard, extractGenres } from "#utilities/utilities.js";
 
 export async function handleStart(ctx) {
   // Clear session step
@@ -74,12 +74,35 @@ export async function handleStart(ctx) {
         const keyboard = await generateInteractiveKeyboard(ctx, movie, isInWatchlist, isAdmin);
 
         const botUsername = ctx.botInfo.username;
-        const keywordQuery = Array.isArray(movie.keywords) && movie.keywords.length > 0 ? movie.keywords : [];
-        let similarMovies = await Movie.find({
-          _id: { $ne: movie._id },
-          keywords: { $in: keywordQuery }
-        }).limit(3).select('_id name');
-        
+        const targetTags = extractGenres(movie.keywords);
+        let similarMovies = [];
+
+        if (targetTags.length > 0) {
+          const regexQueries = targetTags.map(tag => ({
+            keywords: { $regex: '#' + tag, $options: 'i' }
+          }));
+          const candidates = await Movie.find({
+            _id: { $ne: movie._id },
+            $or: regexQueries
+          }).select('_id name keywords views');
+
+          const moviesWithOverlap = candidates.map(otherMovie => {
+            const otherMovieTags = extractGenres(otherMovie.keywords);
+            const intersection = targetTags.filter(tag => otherMovieTags.includes(tag));
+            return {
+              _id: otherMovie._id,
+              name: otherMovie.name,
+              views: otherMovie.views || 0,
+              intersectionSize: intersection.length
+            };
+          });
+
+          similarMovies = moviesWithOverlap
+            .filter(m => m.intersectionSize > 0)
+            .sort((a, b) => b.intersectionSize - a.intersectionSize || b.views - a.views)
+            .slice(0, 3);
+        }
+
         if (similarMovies.length < 3) {
           const extraMovies = await Movie.aggregate([
             { $match: { _id: { $ne: movie._id, $nin: similarMovies.map(m => m._id) } } },
