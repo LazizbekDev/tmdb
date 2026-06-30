@@ -46,9 +46,9 @@ export const formatUptime = (seconds) => {
 
 // Function to format memory usage from bytes to MB or GB
 export const formatMemoryUsage = (bytes) => {
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(2)} KB`;}
     if (bytes < 1024 * 1024 * 1024)
-        return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+        {return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;}
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 

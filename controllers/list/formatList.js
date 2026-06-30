@@ -63,7 +63,7 @@ export const generatePaginationButtons = (currentPage, totalPages, actionPrefix 
 
   // Add the page number buttons
   for (let i = start; i <= end; i++) {
-    if (i === currentPage) continue; // Skip the current page
+    if (i === currentPage) {continue;} // Skip the current page
     buttons.push({ text: `${i}`, callback_data: `${actionPrefix}${i}` });
   }
 

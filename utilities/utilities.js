@@ -29,14 +29,14 @@ export async function getRandomContent(excludeIds = []) {
     { $sample: { size: 1 } },
   ]);
 
-  if (movie.length) return { type: "movie", data: movie[0] };
+  if (movie.length) {return { type: "movie", data: movie[0] };}
 
   const series = await SeriesModel.aggregate([
     { $match: { _id: { $nin: excludeIds } } },
     { $sample: { size: 1 } },
   ]);
 
-  if (series.length) return { type: "series", data: series[0] };
+  if (series.length) {return { type: "series", data: series[0] };}
 
   return null;
 }

@@ -7,15 +7,15 @@ export const saveAiMovie = async (ctx) => {
         const { name, caption: movieCaption, keywords, videoFileId, fileType, movieSize, duration, teaser } = ctx.session.movieData;
 
         const movie = new Movie({
-            name: name,
+            name,
             cleanedName: cleanText(name),
             caption: movieCaption,
             movieUrl: videoFileId,
-            fileType: fileType,
+            fileType,
             teaser: teaser || null,
             size: movieSize,
-            duration: duration,
-            keywords: keywords,
+            duration,
+            keywords,
             cleanedKeywords: keywords.map(keyword => cleanText(keyword)),
             accessedBy: [],
         });
@@ -52,15 +52,15 @@ export const saveManualMovie = async (ctx) => {
         const { name, caption: movieCaption, keywords, videoFileId, fileType, movieSize, duration, teaser } = ctx.session.movieData;
 
         const movie = new Movie({
-            name: name,
+            name,
             cleanedName: cleanText(name),
             caption: movieCaption,
             movieUrl: videoFileId,
-            fileType: fileType,
+            fileType,
             teaser: teaser || null,
             size: movieSize,
-            duration: duration,
-            keywords: keywords,
+            duration,
+            keywords,
             cleanedKeywords: keywords.map(keyword => cleanText(keyword)),
             accessedBy: [],
         });

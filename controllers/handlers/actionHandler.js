@@ -289,13 +289,13 @@ export function handleActionButtons(bot) {
       const episodeNum = ctx.match[3];
 
       const series = await Series.findById(seriesId);
-      if (!series) return ctx.answerCbQuery("Series not found.");
+      if (!series) {return ctx.answerCbQuery("Series not found.");}
 
       const season = series.series.find(s => s.seasonNumber === seasonNum);
-      if (!season) return ctx.answerCbQuery("Season not found.");
+      if (!season) {return ctx.answerCbQuery("Season not found.");}
 
       const episode = season.episodes.find(e => e.episodeNumber === episodeNum);
-      if (!episode) return ctx.answerCbQuery("Episode not found.");
+      if (!episode) {return ctx.answerCbQuery("Episode not found.");}
 
       await ctx.answerCbQuery(`Season ${seasonNum}, Episode ${episodeNum}`);
 

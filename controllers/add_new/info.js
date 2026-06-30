@@ -18,10 +18,10 @@ export default async function info(ctx) {
   ctx.session.caption = caption;
   ctx.session.keywords = keywords;
 
-  if (videoFileId) ctx.session.videoFileId = videoFileId;
-  if (fileType) ctx.session.fileType = fileType;
-  if (movieSize) ctx.session.movieSize = movieSize;
-  if (duration) ctx.session.duration = duration;
+  if (videoFileId) {ctx.session.videoFileId = videoFileId;}
+  if (fileType) {ctx.session.fileType = fileType;}
+  if (movieSize) {ctx.session.movieSize = movieSize;}
+  if (duration) {ctx.session.duration = duration;}
 
   return await ctx.reply("Now send the teaser video");
 }

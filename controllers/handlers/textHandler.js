@@ -25,7 +25,7 @@ export async function handleTextInput(ctx, bot) {
 
     if (messageText.startsWith("/reply ")) {
       const parts = messageText.split(" ");
-      if (parts.length < 3) return ctx.reply("Usage: /reply USER_ID message");
+      if (parts.length < 3) {return ctx.reply("Usage: /reply USER_ID message");}
       const targetId = parts[1];
       const replyMsg = parts.slice(2).join(" ");
       try {
@@ -110,7 +110,7 @@ export async function handleTextInput(ctx, bot) {
 
       // --- Manual Movie Flow ---
       case "manual_movie_name":
-        if (!ctx.session.movieData) ctx.session.movieData = {};
+        if (!ctx.session.movieData) {ctx.session.movieData = {};}
         ctx.session.movieData.name = messageText;
         ctx.session.step = "manual_movie_caption";
         await ctx.reply("Name received. Please send the description/caption.", {
@@ -139,7 +139,7 @@ export async function handleTextInput(ctx, bot) {
         if (!aiSeriesInfo) {
           return ctx.reply("Failed to generate AI info. Please try again or use manual add.");
         }
-        if (!ctx.session.seriesData) ctx.session.seriesData = {};
+        if (!ctx.session.seriesData) {ctx.session.seriesData = {};}
         ctx.session.seriesData.name = aiSeriesInfo.name;
         ctx.session.seriesData.caption = aiSeriesInfo.caption;
         ctx.session.seriesData.keywords = aiSeriesInfo.keywords;
@@ -161,7 +161,7 @@ export async function handleTextInput(ctx, bot) {
 
       // --- Manual Series Flow ---
       case "manual_series_name":
-        if (!ctx.session.seriesData) ctx.session.seriesData = {};
+        if (!ctx.session.seriesData) {ctx.session.seriesData = {};}
         ctx.session.seriesData.name = messageText;
         ctx.session.step = "manual_series_season";
         await ctx.reply("Name received. Please send the season number (e.g. 1).", {
@@ -284,7 +284,7 @@ async function searchAndReply(ctx, messageText, bot) {
       ],
     };
 
-    let [movies, seriesList] = await Promise.all([
+    const [movies, seriesList] = await Promise.all([
       Movie.find(query).select("name caption keywords").lean(),
       Series.find(query).select("name caption keywords").lean(),
     ]);

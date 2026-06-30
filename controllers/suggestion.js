@@ -150,7 +150,7 @@ ${item.caption}
       userId,
       item.teaser,
       {
-        caption: caption,
+        caption,
         parse_mode: "HTML",
         reply_markup: {
           inline_keyboard: [

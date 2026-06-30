@@ -12,7 +12,7 @@ export default async function episodes(ctx, file) {
 
     // Add the episode to the user's episode list
     ctx.session.seriesData.episodes.push({
-        episodeNumber: episodeNumber, // Track episode number
+        episodeNumber, // Track episode number
         fileId: file.file_id, // Store the fileId
     });
 

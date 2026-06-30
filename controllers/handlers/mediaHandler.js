@@ -66,7 +66,7 @@ export async function handleVideoOrDocument(ctx) {
 
       // --- Manual Movie Flow ---
       case "manual_movie_video":
-        if (!ctx.session.movieData) ctx.session.movieData = {};
+        if (!ctx.session.movieData) {ctx.session.movieData = {};}
         Object.assign(ctx.session.movieData, processVideoData(file));
         ctx.session.step = "manual_movie_teaser";
         await ctx.reply("Video received. Please send the teaser video.", {
@@ -83,7 +83,7 @@ export async function handleVideoOrDocument(ctx) {
 
       // --- AI Series Flow ---
       case "ai_series_teaser":
-        if (!ctx.session.seriesData) ctx.session.seriesData = {};
+        if (!ctx.session.seriesData) {ctx.session.seriesData = {};}
         ctx.session.seriesData.teaser = file.file_id;
         ctx.session.step = "ai_series_episodes";
         await ctx.reply("Teaser received. Please send the video for Episode 1.");
@@ -91,7 +91,7 @@ export async function handleVideoOrDocument(ctx) {
       
       // --- Manual Series Flow ---
       case "manual_series_teaser":
-        if (!ctx.session.seriesData) ctx.session.seriesData = {};
+        if (!ctx.session.seriesData) {ctx.session.seriesData = {};}
         ctx.session.seriesData.teaser = file.file_id;
         ctx.session.step = "manual_series_episodes";
         await ctx.reply("Teaser received. Please send the video for Episode 1.");

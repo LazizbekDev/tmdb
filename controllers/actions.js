@@ -26,13 +26,13 @@ export default function setupActions(bot) {
 
   // Handle video and document messages
   bot.on(["video", "document"], (ctx) => {
-    if (ctx.message.via_bot) return;
+    if (ctx.message.via_bot) {return;}
     handleVideoOrDocument(ctx);
   });
 
   // Handle text input
   bot.on("text", (ctx) => {
-    if (ctx.message.via_bot) return;
+    if (ctx.message.via_bot) {return;}
     handleTextInput(ctx, bot);
   });
 

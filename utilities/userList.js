@@ -24,7 +24,7 @@ export async function handleUserList(ctx, bot, page = 0) {
                 // Update DB so we don't have to fetch next time
                 await User.updateOne(
                     { telegramId: user.telegramId },
-                    { $set: { firstName: name, username: username } }
+                    { $set: { firstName: name, username } }
                 );
             } catch (err) {
                 name = "User";

@@ -17,7 +17,7 @@ export default async function addNewEpisode(ctx, file) {
     const episodeNumber = ctx.session.episodeNumber || 1;
 
     ctx.session.episodes.push({
-        episodeNumber: episodeNumber,
+        episodeNumber,
         fileId: file.file_id,
     });
 

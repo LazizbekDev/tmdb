@@ -9,7 +9,7 @@ import { sendJoinWarning, generateInteractiveKeyboard, extractGenres } from "#ut
 
 export async function handleStart(ctx) {
   // Clear session step
-  if (ctx.session) delete ctx.session.step;
+  if (ctx.session) {delete ctx.session.step;}
 
   const userId = ctx.message.from.id;
   const payload = ctx.startPayload;

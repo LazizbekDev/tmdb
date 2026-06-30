@@ -5,7 +5,7 @@ import { getAiSuggestions } from "#utilities/aiSearch.js";
 
 export default async function search(ctx) {
     const query = ctx.inlineQuery.query;
-    if (!query) return;
+    if (!query) {return;}
     const cleanedText = cleanText(query);
     try {
         const queryObj = {

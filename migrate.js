@@ -25,10 +25,10 @@ async function safeRequest(fn) {
 }
 
 function getFileId(msg) {
-    if (!msg) return null;
-    if (msg.video) return msg.video.file_id;
-    if (msg.document) return msg.document.file_id;
-    if (msg.animation) return msg.animation.file_id;
+    if (!msg) {return null;}
+    if (msg.video) {return msg.video.file_id;}
+    if (msg.document) {return msg.document.file_id;}
+    if (msg.animation) {return msg.animation.file_id;}
     return null;
 }
 
@@ -56,7 +56,7 @@ async function migrate() {
                 const forwardMsg = await safeRequest(() => newBot.telegram.forwardMessage(channelId, channelId, msg.message_id));
                 const newFileId = getFileId(forwardMsg);
 
-                if (!newFileId) throw new Error("Yangi File ID ni olib bo'lmadi!");
+                if (!newFileId) {throw new Error("Yangi File ID ni olib bo'lmadi!");}
 
                 // Teaser
                 let newTeaserId = movie.teaser;

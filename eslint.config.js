@@ -12,10 +12,14 @@ export default [
       }
     },
     rules: {
-      "no-unused-vars": "warn",
+      "no-unused-vars": "error",
       "no-console": "off",
       "no-undef": "error",
-      "eqeqeq": "warn"
+      "eqeqeq": ["error", "always"],
+      "prefer-const": "error",
+      "no-var": "error",
+      "curly": "error",
+      "object-shorthand": "error"
     }
   }
 ];
