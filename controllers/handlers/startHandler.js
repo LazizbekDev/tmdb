@@ -73,8 +73,46 @@ export async function handleStart(ctx) {
 
         const keyboard = await generateInteractiveKeyboard(ctx, movie, isInWatchlist, isAdmin);
 
+        const botUsername = ctx.botInfo.username;
+        const keywordQuery = Array.isArray(movie.keywords) && movie.keywords.length > 0 ? movie.keywords : [];
+        let similarMovies = await Movie.find({
+          _id: { $ne: movie._id },
+          keywords: { $in: keywordQuery }
+        }).limit(3).select('_id name');
+        
+        if (similarMovies.length < 3) {
+          const extraMovies = await Movie.aggregate([
+            { $match: { _id: { $ne: movie._id, $nin: similarMovies.map(m => m._id) } } },
+            { $sample: { size: 3 - similarMovies.length } },
+            { $project: { _id: 1, name: 1 } }
+          ]);
+          similarMovies.push(...extraMovies);
+        }
+
+        const excludeIds = [movie._id, ...similarMovies.map(m => m._id)];
+        const trendingMovies = await Movie.find({
+          _id: { $nin: excludeIds }
+        }).sort({ views: -1 }).limit(2).select('_id name');
+
+        let newCaption = `🎬 <b>${movie.name.toUpperCase()}</b>\n\n`;
+
+        if (similarMovies.length > 0) {
+          newCaption += `<b>🔗 Similar Movies:</b>\n`;
+          similarMovies.forEach((m, idx) => {
+            newCaption += `${idx + 1}. <a href="https://t.me/${botUsername}?start=${m._id}">${m.name}</a>\n`;
+          });
+          newCaption += `\n`;
+        }
+
+        if (trendingMovies.length > 0) {
+          newCaption += `<b>🔥 Trending Now:</b>\n`;
+          trendingMovies.forEach((m, idx) => {
+            newCaption += `${idx + 1}. <a href="https://t.me/${botUsername}?start=${m._id}">${m.name}</a>\n`;
+          });
+        }
+
         await ctx.replyWithVideo(movie.movieUrl, {
-          caption: caption(movie, false),
+          caption: newCaption,
           parse_mode: "HTML",
           protect_content: shouldProtect,
           reply_markup: { inline_keyboard: keyboard },
