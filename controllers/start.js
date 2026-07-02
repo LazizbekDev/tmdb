@@ -26,14 +26,33 @@ export const createUserLink = (user) => {
 };
 
 export const startMessage = async (ctx) => {
-  const userId = ctx.message.from.id;
+  const from = ctx.from || ctx.message?.from || ctx.callbackQuery?.from;
+  if (!from) {
+    throw new Error("No sender data available for start message");
+  }
+
+  const userId = from.id;
   const isAdmin =
-    ctx.message.from?.username?.toLowerCase() === process.env.ADMIN;
+    from?.username?.toLowerCase() === process.env.ADMIN?.toLowerCase() ||
+    userId === parseInt(process.env.ADMIN_ID);
   const isMember = await checkUserMembership(userId);
 
-  const firstName = ctx.message.from.first_name;
+  const firstName = from.first_name || from.firstName || "there";
   const botUsername = process.env.BOT_USERNAME;
   const channelUsername = process.env.CHANNEL_USERNAME;
+
+  const sendReply = async (text, options = {}) => {
+    if (typeof ctx.reply === "function") {
+      return ctx.reply(text, options);
+    }
+
+    const chatId = ctx.chat?.id || ctx.callbackQuery?.message?.chat?.id;
+    if (chatId && typeof ctx.telegram?.sendMessage === "function") {
+      return ctx.telegram.sendMessage(chatId, text, options);
+    }
+
+    throw new Error("No reply method available for start message");
+  };
 
   if (isMember) {
     await User.findOneAndUpdate(
@@ -48,21 +67,22 @@ export const startMessage = async (ctx) => {
       botUsername
     );
 
-    return ctx.reply(messageData.text, {
+    return sendReply(messageData.text, {
       parse_mode: "HTML",
       reply_markup: { inline_keyboard: messageData.keyboard },
     });
-  } else {
-    await ctx.replyWithHTML(
-      startMessages.notSubscribed(firstName, botUsername)
-    );
-
-    return ctx.replyWithHTML(startMessages.joinPrompt(channelUsername), {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: "Check Membership", callback_data: "check_membership" }],
-        ],
-      },
-    });
   }
+
+  await sendReply(startMessages.notSubscribed(firstName, botUsername), {
+    parse_mode: "HTML",
+  });
+
+  return sendReply(startMessages.joinPrompt(channelUsername), {
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "Check Membership", callback_data: "check_membership" }],
+      ],
+    },
+  });
 };

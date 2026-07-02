@@ -7,14 +7,6 @@ import { extractGenres } from "./utilities/utilities.js";
 
 const isDryRun = process.env.DRY_RUN === "true" || process.argv.includes("--dry-run");
 
-const normalizeStringArray = (value) => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.filter(Boolean).map((item) => String(item));
-};
-
 const inferFavoriteGenres = async (user) => {
   const interestIds = [...new Set([...(user.accessedMovies || []), ...(user.savedMovies || [])])];
 

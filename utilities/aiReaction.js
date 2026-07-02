@@ -175,13 +175,21 @@ export async function getOrCreateReaction(content, user = null) {
 export async function reactToMessage(ctx, emoji) {
   const normalizedEmoji = normalizeEmoji(emoji);
   try {
+    const chatId = ctx.chat?.id || ctx.callbackQuery?.message?.chat?.id;
+    const messageId = ctx.message?.message_id || ctx.callbackQuery?.message?.message_id;
+
+    if (!chatId || !messageId) {
+      return;
+    }
+
     if (typeof ctx.react === "function") {
       await ctx.react(normalizedEmoji);
       return;
     }
+
     await ctx.telegram.callApi("setMessageReaction", {
-      chat_id: ctx.chat.id,
-      message_id: ctx.message.message_id,
+      chat_id: chatId,
+      message_id: messageId,
       reaction: [{ type: "emoji", emoji: normalizedEmoji }],
     });
   } catch (error) {
