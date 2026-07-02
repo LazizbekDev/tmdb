@@ -137,14 +137,16 @@ export const sendJoinWarning = async (ctx) => {
   );
 };
 
-export const generateInteractiveKeyboard = async (ctx, item, isInWatchlist, isAdmin, isFirstUnlock = false) => {
+export const generateInteractiveKeyboard = async (ctx, item, isInWatchlist, isAdmin, isFirstUnlock = false, selectedReaction = null) => {
   const keyboard = [];
 
   if (isFirstUnlock) {
+    const likedLabel = selectedReaction === "liked" ? "👍 Liked ✓" : "👍 Liked";
+    const notMeLabel = selectedReaction === "not_me" ? "👎 Not for me ✓" : "👎 Not for me";
+
     keyboard.push([
-      { text: "👍 Liked", callback_data: `reaction_liked_${item._id}` },
-      { text: "📌 Save for later", callback_data: `save_later_${item._id}` },
-      { text: "👎 Not for me", callback_data: `reaction_not_me_${item._id}` },
+      { text: likedLabel, callback_data: `reaction_liked_${item._id}` },
+      { text: notMeLabel, callback_data: `reaction_not_me_${item._id}` },
     ]);
   }
 
@@ -217,7 +219,7 @@ export const getWatchlistToggleButton = (movieId, isAdded) => {
       [
         {
           text: isAdded ? "💔 Remove" : "❤️ Add to Watchlist",
-          callback_data: isAdded ? "remove_later_${movieId}" : "save_later_${movieId}",
+          callback_data: isAdded ? `remove_later_${movieId}` : `save_later_${movieId}`,
         },
       ],
       [

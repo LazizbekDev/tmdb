@@ -3,7 +3,7 @@ import Series from "#model/SeriesModel.js";
 import User from "#model/User.js";
 import { adminNotifier } from "#utilities/admin_notifier.js";
 import { getContentById, sendUpdateMessage } from "#utilities/updateFilm.js";
-import { handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton } from "#utilities/utilities.js";
+import { handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton, generateInteractiveKeyboard } from "#utilities/utilities.js";
 import { getTrendingContent } from "#utilities/trending.js";
 import { generateHeader } from "#controllers/list/formatList.js";
 import { handleOnboardingCallback, isOnboardingCallback } from "#controllers/handlers/onboardingHandler.js";
@@ -27,8 +27,14 @@ export function handleCallbackQueries(bot) {
         if (!content) {
           return ctx.answerCbQuery("Content not found.");
         }
-        await ctx.answerCbQuery("Glad you liked it! 🍿");
-        await ctx.reply("🎬 <i>We'll keep finding picks that match your taste.</i>", { parse_mode: "HTML" });
+
+        const isAdmin = checkIsAdmin(ctx);
+        const user = await User.findOne({ telegramId: userId.toString() });
+        const isInWatchlist = user?.savedMovies?.includes(contentId);
+        const keyboard = await generateInteractiveKeyboard(ctx, content, isInWatchlist, isAdmin, true, "liked");
+
+        await ctx.answerCbQuery("👍 Liked!", { show_alert: true });
+        await ctx.telegram.editMessageReplyMarkup(chatId, messageId, null, { inline_keyboard: keyboard });
       } else if (callbackData.startsWith("reaction_not_me_")) {
         const contentId = callbackData.replace("reaction_not_me_", "");
         const content = await findContentById(Movie, Series, contentId);
@@ -43,8 +49,14 @@ export function handleCallbackQueries(bot) {
             $pull: { savedMovies: contentId },
           }
         );
-        await ctx.answerCbQuery("Got it — we'll show you different picks.");
-        await ctx.reply("👌 <i>Noted. Your recommendations will adjust accordingly.</i>", { parse_mode: "HTML" });
+
+        const isAdmin = checkIsAdmin(ctx);
+        const user = await User.findOne({ telegramId: userId.toString() });
+        const isInWatchlist = user?.savedMovies?.includes(contentId);
+        const keyboard = await generateInteractiveKeyboard(ctx, content, isInWatchlist, isAdmin, true, "not_me");
+
+        await ctx.answerCbQuery("👎 Not for me", { show_alert: true });
+        await ctx.telegram.editMessageReplyMarkup(chatId, messageId, null, { inline_keyboard: keyboard });
       } else if (callbackData === "trending_list") {
         const trending = await getTrendingContent(5, 7);
         if (trending.length === 0) {
