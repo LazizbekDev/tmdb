@@ -8,6 +8,7 @@ import User from "#model/User.js";
 import AccessLog from "#model/AccessLog.js";
 import { handlePagination } from "#utilities/utilities.js";
 import { getTrendingContent } from "#utilities/trending.js";
+import { settingsText, buildSettingsKeyboard } from "#utilities/messages/settingsMessage.js";
 
 export function handleCommands(bot) {
   bot.command("trending", async (ctx) => {
@@ -65,6 +66,26 @@ export function handleCommands(bot) {
       console.error("Error in /watch_list command:", error);
       await ctx.reply("An error occurred while processing your request.");
       await adminNotifier(bot, error, ctx, "Watch List command error");
+    }
+  });
+
+  bot.command("settings", async (ctx) => {
+    try {
+      const userId = ctx.from.id.toString();
+      const user = await User.findOne({ telegramId: userId });
+
+      if (!user) {
+        return ctx.reply("User not found.");
+      }
+
+      await ctx.reply(settingsText(user), {
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: buildSettingsKeyboard(user) },
+      });
+    } catch (error) {
+      console.error("Error in /settings command:", error);
+      await ctx.reply("An error occurred while opening settings.");
+      await adminNotifier(bot, error, ctx, "Settings command error");
     }
   });
 

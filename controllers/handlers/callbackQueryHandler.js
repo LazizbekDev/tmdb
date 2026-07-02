@@ -6,7 +6,8 @@ import { getContentById, sendUpdateMessage } from "#utilities/updateFilm.js";
 import { handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton, generateInteractiveKeyboard } from "#utilities/utilities.js";
 import { getTrendingContent } from "#utilities/trending.js";
 import { generateHeader } from "#controllers/list/formatList.js";
-import { handleOnboardingCallback, isOnboardingCallback } from "#controllers/handlers/onboardingHandler.js";
+import { handleOnboardingCallback, isOnboardingCallback, startOnboarding } from "#controllers/handlers/onboardingHandler.js";
+import { settingsText, buildSettingsKeyboard } from "#utilities/messages/settingsMessage.js";
 
 export function handleCallbackQueries(bot) {
   bot.on("callback_query", async (ctx) => {
@@ -21,6 +22,36 @@ export function handleCallbackQueries(bot) {
         if (handled !== false) {
           return;
         }
+      } else if (callbackData === "settings_notify_on") {
+        await User.updateOne({ telegramId: userId.toString() }, { $set: { notificationsEnabled: true } });
+        const user = await User.findOne({ telegramId: userId.toString() });
+        await ctx.answerCbQuery("Notifications enabled.", { show_alert: true });
+        await ctx.editMessageText(settingsText(user), {
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: buildSettingsKeyboard(user) },
+        });
+      } else if (callbackData === "settings_notify_off") {
+        await User.updateOne({ telegramId: userId.toString() }, { $set: { notificationsEnabled: false } });
+        const user = await User.findOne({ telegramId: userId.toString() });
+        await ctx.answerCbQuery("Notifications disabled.", { show_alert: true });
+        await ctx.editMessageText(settingsText(user), {
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: buildSettingsKeyboard(user) },
+        });
+      } else if (callbackData === "settings_genres") {
+        await User.findOne({ telegramId: userId.toString() });
+        await ctx.answerCbQuery();
+        await ctx.editMessageText("🎭 <b>Favorite genres</b>\n\nYou can update your preferences later from onboarding. Re-run onboarding to choose them again.", {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [[{ text: "🔄 Restart onboarding", callback_data: "settings_reonboard" }]],
+          },
+        });
+      } else if (callbackData === "settings_reonboard") {
+        const user = await User.findOne({ telegramId: userId.toString() });
+        await ctx.answerCbQuery("Restarting onboarding.");
+        await ctx.editMessageText("🧭 Let's set up your taste again.", { parse_mode: "HTML" });
+        await startOnboarding(ctx, user);
       } else if (callbackData.startsWith("reaction_liked_")) {
         const contentId = callbackData.replace("reaction_liked_", "");
         const content = await findContentById(Movie, Series, contentId);
