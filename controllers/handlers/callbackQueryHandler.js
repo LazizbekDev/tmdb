@@ -4,7 +4,7 @@ import User from "#model/User.js";
 import { adminNotifier } from "#utilities/admin_notifier.js";
 import { getContentById, sendUpdateMessage } from "#utilities/updateFilm.js";
 import { handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton, generateInteractiveKeyboard } from "#utilities/utilities.js";
-import { getTrendingContent } from "#utilities/trending.js";
+import { getWeeklyTrendingItems } from "#utilities/trending.js";
 import { generateHeader } from "#controllers/list/formatList.js";
 import { handleOnboardingCallback, isOnboardingCallback, startOnboarding } from "#controllers/handlers/onboardingHandler.js";
 import { settingsText, buildSettingsKeyboard } from "#utilities/messages/settingsMessage.js";
@@ -64,7 +64,7 @@ export function handleCallbackQueries(bot) {
         const isInWatchlist = user?.savedMovies?.includes(contentId);
         const keyboard = await generateInteractiveKeyboard(ctx, content, isInWatchlist, isAdmin, true, "liked");
 
-        await ctx.answerCbQuery("👍 Liked!", { show_alert: true });
+        await ctx.answerCbQuery("👍 We’ll keep finding picks like this for you.");
         await ctx.telegram.editMessageReplyMarkup(chatId, messageId, null, { inline_keyboard: keyboard });
       } else if (callbackData.startsWith("reaction_not_me_")) {
         const contentId = callbackData.replace("reaction_not_me_", "");
@@ -86,12 +86,12 @@ export function handleCallbackQueries(bot) {
         const isInWatchlist = user?.savedMovies?.includes(contentId);
         const keyboard = await generateInteractiveKeyboard(ctx, content, isInWatchlist, isAdmin, true, "not_me");
 
-        await ctx.answerCbQuery("👎 Not for me", { show_alert: true });
+        await ctx.answerCbQuery("👎 We won’t suggest this one again.");
         await ctx.telegram.editMessageReplyMarkup(chatId, messageId, null, { inline_keyboard: keyboard });
       } else if (callbackData === "trending_list") {
-        const trending = await getTrendingContent(5, 7);
+        const trending = await getWeeklyTrendingItems({ limit: 5, days: 7 });
         if (trending.length === 0) {
-          return ctx.answerCbQuery("No trending content found for this week.", { show_alert: true });
+          return ctx.answerCbQuery("No trending content found for this week.");
         }
 
         let message = "<b>🔥 TRENDING THIS WEEK</b>\n\n";
@@ -103,7 +103,7 @@ export function handleCallbackQueries(bot) {
           keyboard.push([{ text: `${icon} Watch ${item.data.name}`, url: `https://t.me/${process.env.BOT_USERNAME}?start=${item.data._id}` }]);
         });
 
-        message += "\n<i>Check out what everyone is watching! 🍿</i>";
+        message += "\n<i>These are the most engaged picks from this week. 🍿</i>";
 
         await ctx.reply(message, {
           parse_mode: "HTML",

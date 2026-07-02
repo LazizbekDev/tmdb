@@ -4,7 +4,7 @@ import Series from "#model/SeriesModel.js";
 
 export const getTrendingContent = async (limit = 5, days = 7) => {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  
+
   const trending = await AccessLog.aggregate([
     { $match: { createdAt: { $gte: since } } },
     { $group: { _id: "$contentId", count: { $sum: 1 }, type: { $first: "$contentType" } } },
@@ -20,6 +20,13 @@ export const getTrendingContent = async (limit = 5, days = 7) => {
       results.push({ type: item.type.toLowerCase(), data, count: item.count });
     }
   }
-  
+
   return results;
+};
+
+export const getWeeklyTrendingItems = async ({ limit = 3, excludeIds = [], days = 7 } = {}) => {
+  const trending = await getTrendingContent(limit, days);
+  const excluded = new Set(excludeIds.map((id) => id.toString()));
+
+  return trending.filter((item) => !excluded.has(item.data?._id?.toString()));
 };

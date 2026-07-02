@@ -7,6 +7,7 @@ import { startOnboarding } from "#controllers/handlers/onboardingHandler.js";
 import { notifyAdminContentAccessed } from "#utilities/admin_notifier.js";
 import { sendJoinWarning, generateInteractiveKeyboard, extractGenres } from "#utilities/utilities.js";
 import { getOrCreateReaction, reactToMessage } from "#utilities/aiReaction.js";
+import { getWeeklyTrendingItems } from "#utilities/trending.js";
 
 async function sendUnlockMoment(ctx, content, user, isFirstAccess) {
   if (!isFirstAccess) {
@@ -15,8 +16,14 @@ async function sendUnlockMoment(ctx, content, user, isFirstAccess) {
 
   const reaction = await getOrCreateReaction(content, user);
   await reactToMessage(ctx, reaction.emoji);
-  await ctx.reply(reaction.intro);
-  await ctx.reply(reaction.body);
+
+  const feedbackText = `${reaction.intro}\n${reaction.body}`;
+  if (ctx.update?.callback_query) {
+    await ctx.answerCbQuery(feedbackText);
+  } else {
+    await ctx.reply(feedbackText, { parse_mode: "HTML" });
+  }
+
   return reaction;
 }
 
@@ -81,9 +88,11 @@ async function sendMovieDeepLink(ctx, movie, user, isMember, hasAccessedBefore, 
   }
 
   const excludeIds = [movie._id, ...similarMovies.map(m => m._id)];
-  const trendingMovies = await Movie.find({
-    _id: { $nin: excludeIds }
-  }).sort({ views: -1 }).limit(2).select('_id name');
+  const trendingMovies = await getWeeklyTrendingItems({
+    limit: 2,
+    excludeIds,
+    days: 7,
+  });
 
   let newCaption = `🎬 <b>${movie.name.toUpperCase()}</b>\n\n`;
 
@@ -96,9 +105,9 @@ async function sendMovieDeepLink(ctx, movie, user, isMember, hasAccessedBefore, 
   }
 
   if (trendingMovies.length > 0) {
-    newCaption += `<b>🔥 Trending Now:</b>\n`;
-    trendingMovies.forEach((m, idx) => {
-      newCaption += `${idx + 1}. <a href="https://t.me/${botUsername}?start=${m._id}">${m.name}</a>\n`;
+    newCaption += `<b>🔥 This Week's Picks:</b>\n`;
+    trendingMovies.forEach((item, idx) => {
+      newCaption += `${idx + 1}. <a href="https://t.me/${botUsername}?start=${item.data._id}">${item.data.name}</a>\n`;
     });
   }
 
