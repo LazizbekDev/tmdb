@@ -25,7 +25,15 @@ const SeriesSchema = new mongoose.Schema({
   },
   accessedBy: {
     type: [String],
-    required: true,
+    default: [],
+  },
+  aiReaction: {
+    intro: { type: String },
+    body: { type: String },
+    emoji: { type: String },
+    tone: { type: String },
+    moodTags: [{ type: String }],
+    generatedAt: { type: Date },
   },
 });
 

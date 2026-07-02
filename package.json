@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node --watch index.js",
     "update-paths": "node updatePaths.js",
+    "migrate:personalization": "node migrate-personalization.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -36,7 +37,7 @@
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
-    "telegraf": "^4.15.3",
+    "telegraf": "^4.16.3",
     "telegraf-session-mongodb": "^2.0.2"
   },
   "devDependencies": {

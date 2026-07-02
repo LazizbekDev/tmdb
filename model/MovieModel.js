@@ -13,7 +13,15 @@ const movieSchema = new mongoose.Schema({
   duration: { type: String },
   views: { type: Number, default: 0 },
   movieUrl: { type: String },
-  accessedBy: { type: [String], default: []}
+  accessedBy: { type: [String], default: []},
+  aiReaction: {
+    intro: { type: String },
+    body: { type: String },
+    emoji: { type: String },
+    tone: { type: String },
+    moodTags: [{ type: String }],
+    generatedAt: { type: Date },
+  },
 });
 
 movieSchema.index({ name: "text", keywords: "text" }); // Text search uchun

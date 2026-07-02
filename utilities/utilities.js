@@ -137,8 +137,16 @@ export const sendJoinWarning = async (ctx) => {
   );
 };
 
-export const generateInteractiveKeyboard = async (ctx, item, isInWatchlist, isAdmin) => {
+export const generateInteractiveKeyboard = async (ctx, item, isInWatchlist, isAdmin, isFirstUnlock = false) => {
   const keyboard = [];
+
+  if (isFirstUnlock) {
+    keyboard.push([
+      { text: "👍 Liked", callback_data: `reaction_liked_${item._id}` },
+      { text: "📌 Save for later", callback_data: `save_later_${item._id}` },
+      { text: "👎 Not for me", callback_data: `reaction_not_me_${item._id}` },
+    ]);
+  }
 
   if (isAdmin) {
     keyboard.push([

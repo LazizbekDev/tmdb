@@ -28,7 +28,10 @@ export function setupCronJobs(bot) {
       if (now - lastRunDate >= sevenDays) {
         console.log("🎬 Running movie suggestion job...");
 
-        const users = await User.find();
+        const users = await User.find({
+          notificationsEnabled: { $ne: false },
+          inActive: false,
+        });
         if (!users.length) {
           console.log("No users to suggest movies to.");
           return;
@@ -56,9 +59,10 @@ export function setupCronJobs(bot) {
   cron.schedule("0 15 */3 * *", async () => {
     console.log("⏰ Running watchlist reminder job...");
     try {
-      const users = await User.find({ 
+      const users = await User.find({
         savedMovies: { $exists: true, $not: { $size: 0 } },
-        inActive: false 
+        notificationsEnabled: { $ne: false },
+        inActive: false,
       });
 
       for (const user of users) {

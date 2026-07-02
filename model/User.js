@@ -43,6 +43,22 @@ const userSchema = new mongoose.Schema({
         type: [String],
         default: [], // IDs of movies the user has saved
     },
+    favoriteGenres: {
+        type: [String],
+        default: [],
+    },
+    notificationsEnabled: {
+        type: Boolean,
+        default: true,
+    },
+    onboardingCompleted: {
+        type: Boolean,
+        default: false,
+    },
+    rejectedMovies: {
+        type: [String],
+        default: [],
+    },
 });
 
 const User = mongoose.model("User", userSchema);

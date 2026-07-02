@@ -22,6 +22,8 @@ export const suggestMovie = async (bot, userId) => {
     const accessedIds = user.accessedMovies || [];
     const suggestedIds = user.suggestedMovies || [];
     const savedIds = user.savedMovies || [];
+    const rejectedIds = user.rejectedMovies || [];
+    const excludeIds = [...new Set([...suggestedIds, ...accessedIds, ...rejectedIds])];
 
     // Barcha qiziqarli ID'larni yig'ish (accessed + saved)
     const allInterestIds = [...new Set([...accessedIds, ...savedIds])];
@@ -39,6 +41,12 @@ export const suggestMovie = async (bot, userId) => {
 
     // Janrlar bo'yicha vaznli hisoblash
     const keywordCount = {};
+
+    // Explicit favorite genres get highest weight
+    (user.favoriteGenres || []).forEach((genre) => {
+      keywordCount[genre] = (keywordCount[genre] || 0) + 3;
+    });
+
     [...interestMovies, ...interestSeries].forEach(item => {
       const genres = extractGenres(item.keywords);
       genres.forEach(genre => {
@@ -62,7 +70,7 @@ export const suggestMovie = async (bot, userId) => {
       while (!content && attemptCount < maxAttempts) {
         // Filmlarni qidirish
         const movie = await MovieModel.findOne({
-          _id: { $nin: [...suggestedIds, ...accessedIds] },
+          _id: { $nin: excludeIds },
           keywords: { $elemMatch: { $regex: genreRegex } },
           teaser: { $exists: true, $ne: "" } // Teaser borligini tekshirish
         })
@@ -76,7 +84,7 @@ export const suggestMovie = async (bot, userId) => {
 
         // Seriallarni qidirish
         const series = await SeriesModel.findOne({
-          _id: { $nin: [...suggestedIds, ...accessedIds] },
+          _id: { $nin: excludeIds },
           keywords: { $elemMatch: { $regex: genreRegex } },
           teaser: { $exists: true, $ne: "" }
         })
@@ -96,7 +104,7 @@ export const suggestMovie = async (bot, userId) => {
     if (!content) {
       // Tasodifiy kontent tanlashda ham teaser borligini tekshiramiz
       const randomMovie = await MovieModel.findOne({
-        _id: { $nin: [...suggestedIds, ...accessedIds] },
+        _id: { $nin: excludeIds },
         teaser: { $exists: true, $ne: "" }
       }).sort({ views: -1 });
 
@@ -104,7 +112,7 @@ export const suggestMovie = async (bot, userId) => {
         content = { type: "movie", data: randomMovie };
       } else {
         const randomSeries = await SeriesModel.findOne({
-          _id: { $nin: [...suggestedIds, ...accessedIds] },
+          _id: { $nin: excludeIds },
           teaser: { $exists: true, $ne: "" }
         }).sort({ views: -1 });
 

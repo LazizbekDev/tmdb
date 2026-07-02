@@ -6,6 +6,7 @@ import { getContentById, sendUpdateMessage } from "#utilities/updateFilm.js";
 import { handlePagination, checkIsAdmin, findContentById, getWatchlistToggleButton } from "#utilities/utilities.js";
 import { getTrendingContent } from "#utilities/trending.js";
 import { generateHeader } from "#controllers/list/formatList.js";
+import { handleOnboardingCallback, isOnboardingCallback } from "#controllers/handlers/onboardingHandler.js";
 
 export function handleCallbackQueries(bot) {
   bot.on("callback_query", async (ctx) => {
@@ -15,7 +16,36 @@ export function handleCallbackQueries(bot) {
     const chatId = ctx.callbackQuery.message.chat.id;
 
     try {
-      if (callbackData === "trending_list") {
+      if (isOnboardingCallback(callbackData)) {
+        const handled = await handleOnboardingCallback(ctx, callbackData);
+        if (handled !== false) {
+          return;
+        }
+      } else if (callbackData.startsWith("reaction_liked_")) {
+        const contentId = callbackData.replace("reaction_liked_", "");
+        const content = await findContentById(Movie, Series, contentId);
+        if (!content) {
+          return ctx.answerCbQuery("Content not found.");
+        }
+        await ctx.answerCbQuery("Glad you liked it! 🍿");
+        await ctx.reply("🎬 <i>We'll keep finding picks that match your taste.</i>", { parse_mode: "HTML" });
+      } else if (callbackData.startsWith("reaction_not_me_")) {
+        const contentId = callbackData.replace("reaction_not_me_", "");
+        const content = await findContentById(Movie, Series, contentId);
+        if (!content) {
+          return ctx.answerCbQuery("Content not found.");
+        }
+
+        await User.updateOne(
+          { telegramId: userId.toString() },
+          {
+            $addToSet: { rejectedMovies: contentId },
+            $pull: { savedMovies: contentId },
+          }
+        );
+        await ctx.answerCbQuery("Got it — we'll show you different picks.");
+        await ctx.reply("👌 <i>Noted. Your recommendations will adjust accordingly.</i>", { parse_mode: "HTML" });
+      } else if (callbackData === "trending_list") {
         const trending = await getTrendingContent(5, 7);
         if (trending.length === 0) {
           return ctx.answerCbQuery("No trending content found for this week.", { show_alert: true });
